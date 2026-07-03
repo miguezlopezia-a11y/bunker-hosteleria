@@ -1,0 +1,56 @@
+{
+  "summary": "Full deep-dive frontend testing of BunkerHostal Phase 1 (100% mock/localStorage app). Tested: Login (Director/Recepción/Empleado), route protection, 404 page, Dashboard, Reservas (Lista+Calendario, new reservation modal w/ validation), full 3-step Check-in flow, Huéspedes (search, detail modal, payment link, checkout), public /web booking page for all 3 slugs (albergue-el-camino, albergue-los-pinos, hostal-santa-maria) including validation and availability, Empleado placeholder, Sidebar/BottomNav navigation, mobile viewport calendar & operations drawer, localStorage persistence and logout. Almost all core flows work correctly and match spec. Found 2 real bugs (1 minor cosmetic hardcoded price, 1 functional pre-fill bug) plus 1 minor logout localStorage semantics deviation.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "public/Web.jsx (public booking page header subtitle)",
+        "issue": "Line 102 hardcodes 'Precio desde {formatEuro(15)}/noche' instead of using hostel.basePrice. Confirmed wrong for Los Pinos (should show €16, shows €15) and Hostal Santa María (should show €18, shows €15). Only correct by coincidence for Albergue El Camino.",
+        "selector": "text=Precio desde",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "Huespedes.jsx PaymentLinkModal",
+        "issue": "'Importe' amount field always pre-fills as '0' instead of the guest's price (e.g. Thomas Becker price=€17 but modal shows 0). Root cause: PaymentLinkModal is always mounted in the tree (guest=null initially) and its useState(guest?.price || 0) only initializes once at first mount when guest is still null; it never re-initializes when a new guest is selected since the component doesn't remount. Needs useEffect to sync amount when `guest` prop changes, or add a `key={guest?.id}` to force remount.",
+        "selector": "[data-testid='payment-link-amount-input']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Logout (AppContext.logout)",
+        "issue": "logout() calls localStorage.removeItem(STORAGE_KEY) then setState({...initialState, session:null}); the state-change useEffect immediately re-writes localStorage with the reset initial state (session:null, mock data restored). Functionally logout works (redirects to /, session cleared, mock data reset) but the localStorage key is never actually absent - it's repopulated on the same tick. Minor deviation from spec wording 'confirm localStorage key is cleared', not a functional break.",
+        "affected_selectors": ["[data-testid='sidebar-logout-button']", "[data-testid='employee-logout-button']"]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "New reservation modal / Check-in step 1 / public booking availability form",
+        "issues": ["Native <input type='date'> renders in browser default mm/dd/yyyy locale format inside forms (not DD/MM/YYYY), inconsistent with the rest of the UI which correctly renders dates as DD/MM/YYYY everywhere else (cards, lists, modals). Not a custom calendar picker per the no-shadcn constraint, but worth noting as a minor inconsistency since problem statement emphasizes DD/MM/YYYY 'everywhere'."]
+      }
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Fix hardcoded formatEuro(15) in src/pages/public/Web.jsx line ~102 to use hostel.basePrice",
+    "Fix PaymentLinkModal in src/pages/Huespedes.jsx to sync 'amount' state with the guest prop (useEffect on guest change, or key={guest?.id} on the modal) so Importe pre-fills with correct guest.price",
+    "Optional: consider not calling localStorage.removeItem then immediately relying on the state-effect rewrite in logout(); functionally fine but could be made more explicit if strict 'key must be absent' behavior is desired",
+    "Optional: consider a custom-styled date display wrapper for native date inputs to keep DD/MM/YYYY consistency, though this is a minor/cosmetic item given constraint of no shadcn/date-picker libs"
+  ],
+  "critical_code_review_comments": [
+    "AppContext.jsx is small, clean, and well-commented; state mutations (checkInReservation, addPublicBooking, checkOutGuest) correctly update guests/reservations/beds together in a single setState - good atomicity within React state.",
+    "PaymentLinkModal bug is a classic 'always-mounted modal with useState from prop' anti-pattern - should be fixed to avoid similar bugs in other modals (checked NewReservation and Checkin modals, they appeared fine since they use route-level mount/unmount or fresh state per open).",
+    "ProtectedRoute, Sidebar, and public Web.jsx correctly use real hostel slugs (albergue-el-camino, albergue-los-pinos, hostal-santa-maria) as required by problem statement.",
+    "Overall code quality is good: components are modular, testids are consistently present on interactive elements, Spanish copy is correct throughout, currency/date formatting is centralized in utils/format.js (except the one hardcoded bug found)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A - no backend for this app per problem statement", "frontend": "~92%"},
+  "test_credentials": "No auth backend; any 4-digit PIN works. Used Albergue El Camino + PIN 1234 + Rol Director, and Rol Empleado + Empleado=Ana García, per instructions.",
+  "seed_data_creation": "None - used existing mock data from src/data/*.js. Created one TEST reservation (TEST Guest Playwright) via UI during testing, stored only in that browser session's localStorage (not persisted server-side, no cleanup needed).",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All flows tested and passing except 2 bugs listed above (hardcoded €15 price on /web subtitle, and PaymentLinkModal Importe always 0). Route protection, 404, Empleado flow, check-in 3-step wizard (scan/signature simulation), new reservation validation (empty fields, date order, price>0), public booking form validation (email format, phone digits-only, conditions checkbox), mobile bottom nav + operations drawer (Escape closes), and localStorage persistence across reload all verified working correctly. Next agent should verify the 2 bug fixes once applied: (1) reload /web?hostel=albergue-los-pinos and confirm 'Precio desde € 16/noche', (2) open a guest's payment link modal and confirm Importe pre-fills with guest.price instead of 0."
+}

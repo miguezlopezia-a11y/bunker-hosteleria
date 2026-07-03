@@ -1,0 +1,23 @@
+// 20 beds (1A-1E, 2A-2E, 3A-3E, 4A-4E). 14 occupied, 6 free -> matches "14/20 camas".
+export const beds = [
+  { id: '1A', room: 1, status: 'occupied', guestId: 1 },
+  { id: '1B', room: 1, status: 'occupied', guestId: 2 },
+  { id: '1C', room: 1, status: 'occupied', guestId: 3 },
+  { id: '1D', room: 1, status: 'occupied', guestId: 4 },
+  { id: '1E', room: 1, status: 'occupied', guestId: 5 },
+  { id: '2A', room: 2, status: 'occupied', guestId: 6 },
+  { id: '2B', room: 2, status: 'occupied', guestId: 7 },
+  { id: '2C', room: 2, status: 'occupied', guestId: 8 },
+  { id: '2D', room: 2, status: 'occupied', guestId: 9 },
+  { id: '2E', room: 2, status: 'occupied', guestId: 10 },
+  { id: '3A', room: 3, status: 'occupied', guestId: 11 },
+  { id: '3B', room: 3, status: 'occupied', guestId: 12 },
+  { id: '3C', room: 3, status: 'occupied', guestId: 13 },
+  { id: '3D', room: 3, status: 'occupied', guestId: 14 },
+  { id: '3E', room: 3, status: 'free', guestId: null },
+  { id: '4A', room: 4, status: 'free', guestId: null },
+  { id: '4B', room: 4, status: 'free', guestId: null },
+  { id: '4C', room: 4, status: 'free', guestId: null },
+  { id: '4D', room: 4, status: 'free', guestId: null },
+  { id: '4E', room: 4, status: 'free', guestId: null },
+];
