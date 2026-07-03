@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import ManagerLayout from '../components/ManagerLayout';
@@ -20,6 +20,10 @@ function PaymentLinkModal({ guest, onClose }) {
   const { showToast } = useToast();
   const [amount, setAmount] = useState(guest?.price || 0);
   const [channel, setChannel] = useState('WhatsApp');
+
+  useEffect(() => {
+    if (guest) setAmount(guest.price);
+  }, [guest]);
 
   if (!guest) return null;
 

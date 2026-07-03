@@ -99,7 +99,7 @@ export default function Web() {
         <p className="text-center text-slate-600 mt-2">
           {hostel.address} · {hostel.phone}
         </p>
-        <p className="text-center text-slate-400 text-sm mt-1">Precio desde {formatEuro(15)}/noche</p>
+        <p className="text-center text-slate-400 text-sm mt-1">Precio desde {formatEuro(hostel.basePrice)}/noche</p>
 
         <Card className="mt-8">
           <h2 className="text-base font-semibold text-slate-900 mb-4">Disponibilidad</h2>
