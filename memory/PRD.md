@@ -85,3 +85,63 @@ or blocking issues remain.
 - Wire a real backend/auth once the product moves past pure-mock Phase 1 (not requested yet).
 - Consider persisting per-day bed occupancy precisely for the calendar (currently derived from
   each guest's checkin/checkout range, which is a reasonable approximation for mock data).
+
+---
+
+## Phase 2 — Operations & Team (Feb 2026)
+
+### User choices (gathered via ask_human)
+1. Fichaje location verification mock always succeeds ("WiFi albergue verificado").
+2. MaiA chat gives keyword-based varied mock answers (camas/ocupación/pago/precio + fallback).
+3. Employee portal navigates Fichar↔Historial via small tabs at the top (`EmployeeTabs`).
+4. Recepción has full access to all Phase 2 pages like Director, except cannot add employees or
+   disconnect integrations in Configuración (Director-only).
+
+### What's been implemented
+- Reservas: added 3rd "Channel Manager" tab — Modo Directo toggle (zeroes external-channel
+  availability while `/web` keeps reading real `beds`/`rooms`), per-channel connect toggles
+  (Booking.com/Airbnb/Hostelworld) backed by shared `integrations` state, "Sincronizar ahora"
+  updating `channelSync` timestamps, and a reservation inbox.
+- Comunicaciones (`/comunicaciones`): 6 mutable templates (Toggle ON/OFF + edit modal with
+  canal/mensaje/activo), 10-row send history table.
+- Fichaje equipo manager (`/fichaje`): live team status cards (Trabajando/Fuera/Sin fichar +
+  verification badge), 30-day combined historial table (generated deterministically via
+  `utils/clockHistory.js`), CSV export toast, weekly hours-vs-contracted summary.
+- Employee portal (`/empleado`) fully replaces the Phase 1 placeholder: Fichar card (clock
+  in/out with a 900ms mock "Verificando ubicación..." delay, always succeeds), Tareas del día
+  (own pending/done cleaning tasks with "Marcar como lista" → updates the task + related room +
+  triggers a mock 1s external-channel sync), progress bar. `/empleado/historial` shows the same
+  employee's own read-only 30-day log.
+- Limpieza (`/limpieza`): room grid with clean/cleaning/dirty/blocked badges + external-sync
+  badges when clean, "Asignar tarea" modal (Director only) creating a new task + marking the
+  room dirty, "Log de limpieza" tab listing today's completed tasks.
+- Informes (`/informes`): 4 metric cards, per-channel income bars (plain divs, no chart lib),
+  IVA estimate card, CSV export toast.
+- Configuración (`/configuracion`): editable hostel info (persists to `session.hostel`),
+  employee list + "Añadir empleado" (Director only), integrations connect/disconnect (shared
+  state with Channel Manager), mock fichaje-radius slider, logout.
+- MaiA panel (`/maia`): 5 notifications (Precio/Ocupación/Aviso badges, "Marcar leído"), fixed
+  bottom keyword-based mock chat (camas/ocupación/pago/precio + generic fallback), last 3
+  exchanges shown.
+- Nav: Sidebar + BottomNav "Operaciones" drawer now link to all 4 new manager pages; MaiA bottom
+  tab enabled; Fidelización/Marketplace remain disabled "Próximamente" (Phase 3).
+- New shared components: `Toggle.jsx` (switch), `EmployeeTabs.jsx`. New data: `tasks.js`;
+  extended `rooms.js`, `employees.js`, `channels.js`, `communications.js`, `financials.js`,
+  `maia.js`, `hostels.js` (added `email`). `AppContext.jsx` extended with `integrations`
+  (booleans), `channelSync`, `tasks`, `communicationTemplates` + 14 new mutation actions, all
+  persisted to the same `bunkerhostal_state` localStorage key with a Phase 1→2 shape-migration
+  safety net in `loadState()`.
+
+### Testing status
+`testing_agent_v3` ran a full Phase 2 pass (deterministic Playwright + code review): 100% of
+tested flows passed, zero functional bugs. It also specifically re-investigated and could NOT
+reproduce a suspected fichar/task race condition I flagged from my own quick smoke test — root
+cause confirmed as a force=True click landing on a shifted element during my rushed script, not
+an app bug. One low-priority non-blocking note: `bottom-nav-operaciones` was occasionally flaky
+under Playwright's `force=True` click (raw JS click always worked); worth a glance on real mobile
+devices but not treated as a defect.
+
+### Prioritized backlog (Phase 3, deferred by design)
+- P2: Fidelización (loyalty points program, uses `src/data/loyalty.js`).
+- P2: Marketplace (local services, uses `src/data/marketplace.js`).
+- P3: `/directorio` page.

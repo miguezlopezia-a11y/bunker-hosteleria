@@ -4,9 +4,13 @@ import { reservations as mockReservations } from '../data/reservations';
 import { employees as mockEmployees } from '../data/employees';
 import { rooms as mockRooms } from '../data/rooms';
 import { beds as mockBeds } from '../data/beds';
+import { tasks as mockTasks } from '../data/tasks';
+import { communicationTemplates as mockTemplates } from '../data/communications';
 import { maiaNotifications } from '../data/maia';
+import { addMinutes, formatTime } from '../utils/format';
 
 const STORAGE_KEY = 'bunkerhostal_state';
+const EXTERNAL_CHANNEL_KEYS = ['bookingcom', 'airbnb', 'hostelworld'];
 
 const initialState = {
   session: null, // { hostel, role, employeeName }
@@ -15,13 +19,20 @@ const initialState = {
   rooms: mockRooms,
   beds: mockBeds,
   employees: mockEmployees,
-  tasks: [],
+  tasks: mockTasks,
   notifications: maiaNotifications,
+  communicationTemplates: mockTemplates,
   integrations: {
-    booking: 'desconectado',
-    airbnb: 'desconectado',
-    stripe: 'desconectado',
-    sesHospedajes: 'desconectado',
+    bookingcom: true,
+    airbnb: true,
+    hostelworld: false,
+    stripe: true,
+    sesHospedajes: true,
+  },
+  channelSync: {
+    bookingcom: addMinutes(new Date(), -8).toISOString(),
+    airbnb: addMinutes(new Date(), -12).toISOString(),
+    hostelworld: null,
   },
   modoDirecto: false,
 };
@@ -31,7 +42,16 @@ function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return { ...initialState, ...parsed };
+      const merged = { ...initialState, ...parsed };
+      // Safety-net for the Phase 1 -> Phase 2 shape migration (old sessions may
+      // have an outdated `integrations`/missing `channelSync`/`tasks` shape).
+      if (!parsed.integrations || typeof parsed.integrations.bookingcom === 'undefined') {
+        merged.integrations = initialState.integrations;
+      }
+      if (!parsed.channelSync) merged.channelSync = initialState.channelSync;
+      if (!parsed.tasks) merged.tasks = initialState.tasks;
+      if (!parsed.communicationTemplates) merged.communicationTemplates = initialState.communicationTemplates;
+      return merged;
     }
   } catch (e) {
     // ignore malformed storage, fall back to initial mock state
@@ -40,6 +60,15 @@ function loadState() {
 }
 
 const AppContext = createContext(null);
+
+function syncConnectedChannels(prev) {
+  const now = new Date().toISOString();
+  const nextSync = { ...prev.channelSync };
+  EXTERNAL_CHANNEL_KEYS.forEach((key) => {
+    if (prev.integrations[key]) nextSync[key] = now;
+  });
+  return nextSync;
+}
 
 export function AppProvider({ children }) {
   const [state, setState] = useState(loadState);
@@ -164,6 +193,137 @@ export function AppProvider({ children }) {
     });
   };
 
+  // --- Phase 2: Channel Manager / Modo Directo ---
+  const toggleChannel = (channelId) => {
+    setState((prev) => ({
+      ...prev,
+      integrations: { ...prev.integrations, [channelId]: !prev.integrations[channelId] },
+    }));
+  };
+
+  const disconnectIntegration = (key) => {
+    setState((prev) => ({
+      ...prev,
+      integrations: { ...prev.integrations, [key]: false },
+    }));
+  };
+
+  const setModoDirecto = (value) => {
+    setState((prev) => ({ ...prev, modoDirecto: value }));
+  };
+
+  const syncChannels = () => {
+    setState((prev) => ({ ...prev, channelSync: syncConnectedChannels(prev) }));
+  };
+
+  // --- Phase 2: Fichaje equipo ---
+  const clockIn = (employeeId) => {
+    setState((prev) => ({
+      ...prev,
+      employees: prev.employees.map((e) =>
+        e.id === employeeId
+          ? { ...e, clockedIn: true, clockInTime: formatTime(new Date()), clockOutTime: null, verification: 'wifi' }
+          : e
+      ),
+    }));
+  };
+
+  const clockOut = (employeeId) => {
+    setState((prev) => ({
+      ...prev,
+      employees: prev.employees.map((e) =>
+        e.id === employeeId ? { ...e, clockedIn: false, clockOutTime: formatTime(new Date()) } : e
+      ),
+    }));
+  };
+
+  // --- Phase 2: Limpieza / tareas ---
+  const markTaskDone = (taskId) => {
+    setState((prev) => {
+      const task = prev.tasks.find((t) => t.id === taskId);
+      if (!task) return prev;
+      return {
+        ...prev,
+        tasks: prev.tasks.map((t) =>
+          t.id === taskId ? { ...t, status: 'done', completedAt: new Date().toISOString() } : t
+        ),
+        rooms: prev.rooms.map((r) => (r.id === task.roomId ? { ...r, status: 'clean' } : r)),
+      };
+    });
+    // Mock external channel sync triggered by the newly cleaned room.
+    setTimeout(() => {
+      setState((prev) => ({ ...prev, channelSync: syncConnectedChannels(prev) }));
+    }, 1000);
+  };
+
+  const updateRoomStatus = (roomId, status) => {
+    setState((prev) => ({
+      ...prev,
+      rooms: prev.rooms.map((r) => (r.id === roomId ? { ...r, status } : r)),
+    }));
+    if (status === 'clean') {
+      setTimeout(() => {
+        setState((prev) => ({ ...prev, channelSync: syncConnectedChannels(prev) }));
+      }, 1000);
+    }
+  };
+
+  const assignTask = ({ roomId, employeeName, notes }) => {
+    setState((prev) => ({
+      ...prev,
+      tasks: [
+        ...prev.tasks,
+        { id: Date.now(), roomId, employeeName, priority: 'normal', status: 'pending', completedAt: null, notes: notes || '' },
+      ],
+      rooms: prev.rooms.map((r) => (r.id === roomId ? { ...r, status: 'dirty', assignedTo: employeeName } : r)),
+    }));
+  };
+
+  // --- Phase 2: MaiA ---
+  const markNotificationRead = (id) => {
+    setState((prev) => ({
+      ...prev,
+      notifications: prev.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)),
+    }));
+  };
+
+  // --- Phase 2: Comunicaciones ---
+  const saveTemplate = (templateId, updates) => {
+    setState((prev) => ({
+      ...prev,
+      communicationTemplates: prev.communicationTemplates.map((t) =>
+        t.id === templateId ? { ...t, ...updates } : t
+      ),
+    }));
+  };
+
+  const toggleTemplateActive = (templateId) => {
+    setState((prev) => ({
+      ...prev,
+      communicationTemplates: prev.communicationTemplates.map((t) =>
+        t.id === templateId ? { ...t, active: !t.active } : t
+      ),
+    }));
+  };
+
+  // --- Phase 2: Configuración ---
+  const addEmployee = ({ name, role, pin }) => {
+    setState((prev) => ({
+      ...prev,
+      employees: [
+        ...prev.employees,
+        { id: Date.now(), name, role, pin, clockedIn: false, clockInTime: null, clockOutTime: null, verification: null },
+      ],
+    }));
+  };
+
+  const updateHostelInfo = (updates) => {
+    setState((prev) => ({
+      ...prev,
+      session: prev.session ? { ...prev.session, hostel: { ...prev.session.hostel, ...updates } } : prev.session,
+    }));
+  };
+
   const value = {
     ...state,
     login,
@@ -173,6 +333,20 @@ export function AppProvider({ children }) {
     checkOutGuest,
     sendPaymentLink,
     addPublicBooking,
+    toggleChannel,
+    disconnectIntegration,
+    setModoDirecto,
+    syncChannels,
+    clockIn,
+    clockOut,
+    markTaskDone,
+    updateRoomStatus,
+    assignTask,
+    markNotificationRead,
+    saveTemplate,
+    toggleTemplateActive,
+    addEmployee,
+    updateHostelInfo,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

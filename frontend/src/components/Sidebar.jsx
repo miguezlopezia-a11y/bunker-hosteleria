@@ -8,15 +8,21 @@ const NAV_ITEMS = [
   { id: 'reservas', label: 'Reservas', to: '/reservas' },
 ];
 
-const PHASE2_ITEMS = [
-  { id: 'comunicaciones', label: 'Comunicaciones' },
-  { id: 'fichaje', label: 'Fichaje equipo' },
-  { id: 'limpieza', label: 'Limpieza' },
-  { id: 'informes', label: 'Informes' },
+const ENABLED_ITEMS = [
+  { id: 'comunicaciones', label: 'Comunicaciones', to: '/comunicaciones' },
+  { id: 'fichaje', label: 'Fichaje equipo', to: '/fichaje' },
+  { id: 'limpieza', label: 'Limpieza', to: '/limpieza' },
+  { id: 'informes', label: 'Informes', to: '/informes' },
+];
+
+const PHASE3_ITEMS = [
   { id: 'fidelizacion', label: 'Fidelización' },
   { id: 'marketplace', label: 'Marketplace' },
-  { id: 'maia', label: 'MaiA' },
-  { id: 'configuracion', label: 'Configuración' },
+];
+
+const FOOTER_ITEMS = [
+  { id: 'maia', label: 'MaiA', to: '/maia' },
+  { id: 'configuracion', label: 'Configuración', to: '/configuracion' },
 ];
 
 export default function Sidebar() {
@@ -76,7 +82,22 @@ export default function Sidebar() {
 
         <div className="h-px bg-gray-200 my-2" />
 
-        {PHASE2_ITEMS.map((item) => (
+        {ENABLED_ITEMS.map((item) => (
+          <Link
+            key={item.id}
+            to={item.to}
+            data-testid={`sidebar-link-${item.id}`}
+            className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 border-l-4 ${
+              isActive(item.to)
+                ? 'border-blue-600 text-blue-600 bg-blue-50'
+                : 'border-transparent text-slate-600 hover:bg-gray-50'
+            }`}
+          >
+            {item.label}
+          </Link>
+        ))}
+
+        {PHASE3_ITEMS.map((item) => (
           <div
             key={item.id}
             data-testid={`sidebar-link-${item.id}`}
@@ -85,6 +106,23 @@ export default function Sidebar() {
             {item.label}
             <Badge variant="proximamente">Próximamente</Badge>
           </div>
+        ))}
+
+        <div className="h-px bg-gray-200 my-2" />
+
+        {FOOTER_ITEMS.map((item) => (
+          <Link
+            key={item.id}
+            to={item.to}
+            data-testid={`sidebar-link-${item.id}`}
+            className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 border-l-4 ${
+              isActive(item.to)
+                ? 'border-blue-600 text-blue-600 bg-blue-50'
+                : 'border-transparent text-slate-600 hover:bg-gray-50'
+            }`}
+          >
+            {item.label}
+          </Link>
         ))}
       </nav>
 

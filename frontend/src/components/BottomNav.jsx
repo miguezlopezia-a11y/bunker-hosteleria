@@ -41,13 +41,12 @@ const TABS = [
 ];
 
 const OPERATIONS_ITEMS = [
-  'Comunicaciones',
-  'Fichaje equipo',
-  'Limpieza',
-  'Informes',
-  'Fidelización',
-  'Marketplace',
-  'Configuración',
+  { id: 'comunicaciones', label: 'Comunicaciones', to: '/comunicaciones', enabled: true },
+  { id: 'fichaje', label: 'Fichaje equipo', to: '/fichaje', enabled: true },
+  { id: 'limpieza', label: 'Limpieza', to: '/limpieza', enabled: true },
+  { id: 'informes', label: 'Informes', to: '/informes', enabled: true },
+  { id: 'fidelizacion', label: 'Fidelización', enabled: false },
+  { id: 'marketplace', label: 'Marketplace', enabled: false },
 ];
 
 export default function BottomNav() {
@@ -89,17 +88,18 @@ export default function BottomNav() {
           </svg>
           Operaciones
         </button>
-        <button
-          type="button"
-          disabled
+        <Link
+          to="/maia"
           data-testid="bottom-nav-maia"
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-xs font-medium text-slate-300 cursor-not-allowed"
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-xs font-medium transition-colors duration-150 ${
+            isActive('/maia') ? 'text-blue-600' : 'text-slate-400'
+          }`}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 11.5a8.4 8.4 0 0 1-1.2 4.4L21 20l-4.3-1.2a8.5 8.5 0 1 1 4.3-7.3Z" />
           </svg>
           MaiA
-        </button>
+        </Link>
       </nav>
 
       {drawerOpen && (
@@ -129,16 +129,28 @@ export default function BottomNav() {
               </button>
             </div>
             <div className="flex flex-col gap-1">
-              {OPERATIONS_ITEMS.map((label) => (
-                <div
-                  key={label}
-                  data-testid={`operations-drawer-item-${label.toLowerCase().replace(/\s+/g, '-')}`}
-                  className="flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium text-slate-400 cursor-not-allowed"
-                >
-                  {label}
-                  <Badge variant="proximamente">Próximamente</Badge>
-                </div>
-              ))}
+              {OPERATIONS_ITEMS.map((item) =>
+                item.enabled ? (
+                  <Link
+                    key={item.id}
+                    to={item.to}
+                    onClick={() => setDrawerOpen(false)}
+                    data-testid={`operations-drawer-item-${item.id}`}
+                    className="flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium text-slate-900 hover:bg-gray-50 transition-colors duration-150"
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  <div
+                    key={item.id}
+                    data-testid={`operations-drawer-item-${item.id}`}
+                    className="flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium text-slate-400 cursor-not-allowed"
+                  >
+                    {item.label}
+                    <Badge variant="proximamente">Próximamente</Badge>
+                  </div>
+                )
+              )}
             </div>
           </div>
         </div>
