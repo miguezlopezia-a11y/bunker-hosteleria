@@ -1,12 +1,73 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useToast } from '../context/ToastContext';
 import { camino } from '../data/camino';
 import ManagerLayout from '../components/ManagerLayout';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 import Button from '../components/Button';
 import { formatDate, formatEuro, isSameDay } from '../utils/format';
+
+function ShareDirectBookingCard({ hostel }) {
+  const { showToast } = useToast();
+  if (!hostel) return null;
+
+  const bookingUrl = `${window.location.origin}/web?hostel=${hostel.slug}`;
+  const shareMessage = `Reserva tu cama directamente en ${hostel.name}, sin comisiones: ${bookingUrl}`;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(bookingUrl);
+      showToast('Enlace copiado');
+    } catch (e) {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = bookingUrl;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast('Enlace copiado');
+      } catch (fallbackError) {
+        showToast('No se pudo copiar. Selecciona el enlace manualmente.', 'error');
+      }
+    }
+  };
+
+  const handleWhatsappShare = () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage)}`, '_blank', 'noopener,noreferrer');
+  };
+
+  return (
+    <Card className="mb-6" data-testid="share-direct-booking-card">
+      <h2 className="text-base font-semibold text-slate-900 mb-1">Compartir enlace de reserva directa</h2>
+      <p className="text-xs text-slate-400 mb-3">
+        Envía este enlace a huéspedes potenciales para que reserven sin comisiones.
+      </p>
+      <div className="flex items-center gap-2 mb-3">
+        <input
+          type="text"
+          readOnly
+          value={bookingUrl}
+          onFocus={(e) => e.target.select()}
+          data-testid="direct-booking-link-input"
+          className="flex-1 border border-gray-200 rounded-md px-3 py-2.5 text-sm text-slate-600 bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" onClick={handleCopy} data-testid="copy-direct-link-button">
+          Copiar enlace
+        </Button>
+        <Button onClick={handleWhatsappShare} data-testid="share-whatsapp-button">
+          Enviar por WhatsApp
+        </Button>
+      </div>
+    </Card>
+  );
+}
 
 export default function Dashboard() {
   const { session, reservations, guests, beds, notifications, modoDirecto } = useApp();
@@ -91,6 +152,8 @@ export default function Dashboard() {
             <p className="text-xs text-slate-400 mt-1">Disponibles</p>
           </Card>
         </div>
+
+        <ShareDirectBookingCard hostel={session?.hostel} />
 
         <Card className="mb-6" data-testid="camino-widget">
           <button
