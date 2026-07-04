@@ -5,7 +5,12 @@ import Badge from './Badge';
 
 const NAV_ITEMS = [
   { id: 'hoy', label: 'Hoy', to: '/dashboard' },
-  { id: 'reservas', label: 'Reservas', to: '/reservas' },
+];
+
+const RESERVAS_SUBMENU = [
+  { id: 'reservas-lista', label: 'Lista', to: '/reservas' },
+  { id: 'reservas-calendario', label: 'Calendario', to: '/calendario' },
+  { id: 'reservas-channel', label: 'Channel Manager', to: '/channel-manager' },
 ];
 
 const ENABLED_ITEMS = [
@@ -13,12 +18,11 @@ const ENABLED_ITEMS = [
   { id: 'fichaje', label: 'Fichaje equipo', to: '/fichaje' },
   { id: 'limpieza', label: 'Limpieza', to: '/limpieza' },
   { id: 'informes', label: 'Informes', to: '/informes' },
+  { id: 'fidelizacion', label: 'Fidelización', to: '/fidelizacion' },
+  { id: 'marketplace', label: 'Marketplace', to: '/marketplace' },
 ];
 
-const PHASE3_ITEMS = [
-  { id: 'fidelizacion', label: 'Fidelización' },
-  { id: 'marketplace', label: 'Marketplace' },
-];
+const PHASE3_ITEMS = [];
 
 const FOOTER_ITEMS = [
   { id: 'maia', label: 'MaiA', to: '/maia' },
@@ -58,6 +62,22 @@ export default function Sidebar() {
           </Link>
         ))}
 
+        <div className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">Reservas</div>
+        {RESERVAS_SUBMENU.map((item) => (
+          <Link
+            key={item.id}
+            to={item.to}
+            data-testid={`sidebar-link-${item.id}`}
+            className={`pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150 border-l-4 ${
+              isActive(item.to)
+                ? 'border-blue-600 text-blue-600 bg-blue-50'
+                : 'border-transparent text-slate-600 hover:bg-gray-50'
+            }`}
+          >
+            {item.label}
+          </Link>
+        ))}
+
         <Link
           to={webPublicaUrl}
           target="_blank"
@@ -66,6 +86,18 @@ export default function Sidebar() {
           className="px-3 py-2.5 rounded-lg text-sm font-medium border-l-4 border-transparent text-slate-600 hover:bg-gray-50 transition-colors duration-150"
         >
           Web pública
+        </Link>
+
+        <Link
+          to="/directorio"
+          data-testid="sidebar-link-directorio"
+          className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 border-l-4 ${
+            isActive('/directorio')
+              ? 'border-blue-600 text-blue-600 bg-blue-50'
+              : 'border-transparent text-slate-600 hover:bg-gray-50'
+          }`}
+        >
+          Directorio
         </Link>
 
         <Link

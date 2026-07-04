@@ -25,8 +25,13 @@ function FicharCard({ employee }) {
         clockOut(employee.id);
         setResult({ ok: true, text: `Salida registrada · WiFi albergue verificado` });
       } else {
-        clockIn(employee.id);
-        setResult({ ok: true, text: `Entrada registrada · WiFi albergue verificado` });
+        const outOfZone = Math.random() < 0.2;
+        if (outOfZone) {
+          setResult({ ok: false, text: 'Fuera de zona · Acércate al albergue para fichar' });
+        } else {
+          clockIn(employee.id);
+          setResult({ ok: true, text: `Entrada registrada · WiFi albergue verificado` });
+        }
       }
       setVerifying(false);
     }, 900);
@@ -57,7 +62,10 @@ function FicharCard({ employee }) {
       )}
 
       {result && (
-        <p className="text-center text-green-600 font-medium mt-3" data-testid="fichar-result-success">
+        <p
+          className={`text-center font-medium mt-3 ${result.ok ? 'text-green-600' : 'text-red-600'}`}
+          data-testid={result.ok ? 'fichar-result-success' : 'fichar-result-error'}
+        >
           {result.text}
         </p>
       )}

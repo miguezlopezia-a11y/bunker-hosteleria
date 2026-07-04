@@ -6,7 +6,7 @@ import Card from '../../components/Card';
 import Input from '../../components/Input';
 import Select from '../../components/Select';
 import Button from '../../components/Button';
-import { formatEuro, addDays } from '../../utils/format';
+import { formatEuro, addDays, formatPhone } from '../../utils/format';
 
 const PERSON_OPTIONS = Array.from({ length: 6 }, (_, i) => ({ value: String(i + 1), label: `${i + 1}` }));
 
@@ -25,6 +25,7 @@ export default function Web() {
   const [showAvailability, setShowAvailability] = useState(false);
   const [selectedBed, setSelectedBed] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     name: '',
@@ -61,7 +62,9 @@ export default function Web() {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    addPublicBooking({
+    setSubmitting(true);
+    setTimeout(() => {
+      addPublicBooking({
       bedId: selectedBed.id,
       guest: {
         name: form.name,
@@ -74,7 +77,9 @@ export default function Web() {
       checkout: new Date(checkout),
       price: hostel.basePrice,
     });
-    setSuccess(true);
+      setSubmitting(false);
+      setSuccess(true);
+    }, 700);
   };
 
   if (success) {
@@ -100,7 +105,7 @@ export default function Web() {
           {hostel.name} — Reserva directa sin comisiones
         </h1>
         <p className="text-center text-slate-600 mt-2">
-          {hostel.address} · {hostel.phone}
+          {hostel.address} · {formatPhone(hostel.phone)}
         </p>
         <p className="text-center text-slate-400 text-sm mt-1">Precio desde {formatEuro(hostel.basePrice)}/noche</p>
 
@@ -222,7 +227,7 @@ export default function Web() {
               </label>
               {errors.conditions && <p className="text-red-600 text-xs">{errors.conditions}</p>}
 
-              <Button type="submit" fullWidth data-testid="public-booking-submit-button">
+              <Button type="submit" fullWidth loading={submitting} data-testid="public-booking-submit-button">
                 {form.paymentMethod === 'tarjeta'
                   ? `Confirmar y pagar ${formatEuro(hostel.basePrice)}`
                   : 'Reservar y garantizar con tarjeta'}

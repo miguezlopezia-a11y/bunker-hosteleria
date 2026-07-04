@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../context/ToastContext';
 import { financials } from '../data/financials';
 import ManagerLayout from '../components/ManagerLayout';
@@ -11,12 +12,12 @@ const RANGE_OPTIONS = [
   { value: 'hoy', label: 'Hoy' },
   { value: 'semana', label: 'Esta semana' },
   { value: 'mes', label: 'Este mes' },
-  { value: 'custom', label: 'Custom' },
 ];
 
 export default function Informes() {
   const { showToast } = useToast();
   const [range, setRange] = useState('mes');
+  const [exporting, setExporting] = useState(false);
 
   const maxChannelIncome = Math.max(...financials.byChannel.map((c) => c.income));
 
@@ -87,7 +88,18 @@ export default function Informes() {
           </p>
         </Card>
 
-        <Button variant="secondary" onClick={() => showToast('Exportado (mock)')} data-testid="informes-export-button">
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setExporting(true);
+            setTimeout(() => {
+              showToast('Exportado (mock)');
+              setExporting(false);
+            }, 800);
+          }}
+          loading={exporting}
+          data-testid="informes-export-button"
+        >
           Descargar informe CSV (mock)
         </Button>
       </div>

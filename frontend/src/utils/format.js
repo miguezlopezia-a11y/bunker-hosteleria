@@ -75,6 +75,15 @@ export function formatRelativeDateTime(date) {
 }
 
 export function formatEuroDecimal(amount) {
-  const formatted = Number(amount).toFixed(2).replace('.', ',').replace(/,00$/, '');
+  const formatted = Number(amount).toFixed(2).replace('.', ',');
   return `€\u00A0${formatted}`;
+}
+
+export function formatPhone(raw) {
+  if (!raw) return '';
+  const digits = String(raw).replace(/\D/g, '');
+  if (digits.length === 9) {
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+  }
+  return raw;
 }

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { channels } from '../data/channels';
@@ -177,19 +177,24 @@ function ReservationsList({ reservations, navigate }) {
 
 function CalendarCellModal({ cell, onClose }) {
   if (!cell) return null;
+  const person = cell.guest || cell.reservation || {};
+  const personName = person.name || person.guestName || 'Reserva';
+  const nationality = person.nationality || '—';
+  const checkin = person.checkin;
+  const checkout = person.checkout;
   return (
     <Modal isOpen onClose={onClose} title="Detalle de la cama" testId="calendar-cell-modal" size="sm">
       <div className="flex flex-col gap-2 text-sm">
-        <p><span className="font-medium text-slate-900">Huésped: </span>{cell.guest.name}</p>
-        <p><span className="font-medium text-slate-900">Nacionalidad: </span>{cell.guest.nationality}</p>
-        <p><span className="font-medium text-slate-900">Fechas: </span>{formatDate(cell.guest.checkin)} — {formatDate(cell.guest.checkout)}</p>
+        <p><span className="font-medium text-slate-900">Huésped: </span>{personName}</p>
+        <p><span className="font-medium text-slate-900">Nacionalidad: </span>{nationality}</p>
+        <p><span className="font-medium text-slate-900">Fechas: </span>{formatDate(checkin)} — {formatDate(checkout)}</p>
         <p><span className="font-medium text-slate-900">Cama: </span>{cell.bed.id}</p>
       </div>
     </Modal>
   );
 }
 
-function CalendarTab({ beds, guests }) {
+function CalendarTab({ beds, guests, reservations }) {
   const [dayOffset, setDayOffset] = useState(0);
   const [selectedCell, setSelectedCell] = useState(null);
 
@@ -197,6 +202,7 @@ function CalendarTab({ beds, guests }) {
     const today = new Date();
     return Array.from({ length: 7 }, (_, i) => addDays(today, i));
   }, []);
+  const maxOffset = useMemo(() => Math.max(0, allDays.length - 3), [allDays.length]);
   const roomsMap = useMemo(() => {
     const map = {};
     beds.forEach((b) => {
@@ -207,12 +213,16 @@ function CalendarTab({ beds, guests }) {
   }, [beds]);
 
   const getCell = (bed, day) => {
-    if (bed.status === 'blocked') return { status: 'blocked' };
+    if (bed.status === 'blocked') return { status: 'blocked', bed };
     const guest = guests.find(
       (g) => g.bedId === bed.id && isBetweenInclusive(day, g.checkin, g.checkout)
     );
     if (guest) return { status: 'occupied', guest, bed };
-    return { status: 'available' };
+    const reservation = reservations.find(
+      (r) => r.bed === bed.id && isBetweenInclusive(day, r.checkin, r.checkout)
+    );
+    if (reservation) return { status: 'occupied', reservation, bed };
+    return { status: 'available', bed };
   };
 
   const renderGrid = (days) => (
@@ -290,14 +300,14 @@ function CalendarTab({ beds, guests }) {
           </Button>
           <Button
             variant="secondary"
-            onClick={() => setDayOffset((o) => Math.min(4, o + 3))}
-            disabled={dayOffset >= 4}
+            onClick={() => setDayOffset((o) => Math.min(maxOffset, o + 3))}
+            disabled={dayOffset >= maxOffset}
             data-testid="calendar-next-button"
           >
             Siguiente
           </Button>
         </div>
-        {renderGrid(allDays.slice(dayOffset, dayOffset + 3))}
+        {renderGrid(allDays.slice(dayOffset, Math.min(dayOffset + 3, allDays.length)))}
       </div>
 
       <CalendarCellModal cell={selectedCell} onClose={() => setSelectedCell(null)} />
@@ -308,12 +318,17 @@ function CalendarTab({ beds, guests }) {
 function ChannelManagerTab() {
   const { integrations, channelSync, modoDirecto, setModoDirecto, toggleChannel, syncChannels, reservations, beds } = useApp();
   const { showToast } = useToast();
+  const [syncing, setSyncing] = useState(false);
 
   const freeBeds = beds.filter((b) => b.status === 'free').length;
 
   const handleSync = () => {
+    setSyncing(true);
     showToast('Sincronizando canales...');
-    syncChannels();
+    setTimeout(() => {
+      syncChannels();
+      setSyncing(false);
+    }, 800);
   };
 
   return (
@@ -342,7 +357,7 @@ function ChannelManagerTab() {
       <Card>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-slate-900">Canales conectados</h2>
-          <Button variant="secondary" onClick={handleSync} data-testid="sync-channels-button">
+          <Button variant="secondary" onClick={handleSync} loading={syncing} data-testid="sync-channels-button">
             Sincronizar ahora
           </Button>
         </div>
@@ -407,11 +422,27 @@ function ChannelManagerTab() {
   );
 }
 
+const TAB_PATHS = {
+  lista: '/reservas',
+  calendario: '/calendario',
+  'channel-manager': '/channel-manager',
+};
+const PATH_TO_TAB = {
+  '/reservas': 'lista',
+  '/calendario': 'calendario',
+  '/channel-manager': 'channel-manager',
+};
+
 export default function Reservas() {
   const { reservations, beds, guests } = useApp();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('lista');
+  const location = useLocation();
+  const activeTab = PATH_TO_TAB[location.pathname] || 'lista';
   const [modalOpen, setModalOpen] = useState(false);
+
+  const handleTabChange = (tab) => {
+    if (TAB_PATHS[tab]) navigate(TAB_PATHS[tab]);
+  };
 
   return (
     <ManagerLayout>
@@ -430,13 +461,13 @@ export default function Reservas() {
             { id: 'channel-manager', label: 'Channel Manager' },
           ]}
           activeTab={activeTab}
-          onChange={setActiveTab}
+          onChange={handleTabChange}
           testIdPrefix="reservas-tab"
         />
 
         <div className="mt-4">
           {activeTab === 'lista' && <ReservationsList reservations={reservations} navigate={navigate} />}
-          {activeTab === 'calendario' && <CalendarTab beds={beds} guests={guests} />}
+          {activeTab === 'calendario' && <CalendarTab beds={beds} guests={guests} reservations={reservations} />}
           {activeTab === 'channel-manager' && <ChannelManagerTab />}
         </div>
 

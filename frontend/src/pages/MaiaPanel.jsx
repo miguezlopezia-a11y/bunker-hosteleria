@@ -5,6 +5,7 @@ import Card from '../components/Card';
 import Badge from '../components/Badge';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { formatRelativeDateTime, formatEuro } from '../utils/format';
 
 const TYPE_LABELS = { precio: 'Precio', ocupacion: 'Ocupación', aviso: 'Aviso' };
@@ -65,12 +66,16 @@ function MaiaChat() {
                 <p className="text-slate-600">MaiA: {ex.answer}</p>
               </div>
             ))}
-            {loading && <p className="text-xs text-slate-400">MaiA está escribiendo...</p>}
+            {loading && (
+              <p className="text-xs text-slate-400 flex items-center gap-1.5">
+                <LoadingSpinner size={12} /> MaiA está escribiendo...
+              </p>
+            )}
           </div>
         )}
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <Input
-            label=""
+            aria-label="Pregunta algo a MaiA"
             placeholder="Pregunta algo a MaiA..."
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
@@ -88,7 +93,7 @@ function MaiaChat() {
 
 export default function MaiaPanel() {
   const { notifications, markNotificationRead } = useApp();
-  const sorted = [...notifications].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const sorted = [...notifications].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
     <ManagerLayout>

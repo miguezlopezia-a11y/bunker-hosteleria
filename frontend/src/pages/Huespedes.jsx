@@ -20,6 +20,8 @@ function PaymentLinkModal({ guest, onClose }) {
   const { showToast } = useToast();
   const [amount, setAmount] = useState(guest?.price || 0);
   const [channel, setChannel] = useState('WhatsApp');
+  const [error, setError] = useState('');
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (guest) setAmount(guest.price);
@@ -29,9 +31,18 @@ function PaymentLinkModal({ guest, onClose }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    sendPaymentLink(guest.id);
-    showToast('Enlace enviado');
-    onClose();
+    setError('');
+    if (!amount || Number(amount) <= 0) {
+      setError('El importe debe ser mayor que 0');
+      return;
+    }
+    setSending(true);
+    setTimeout(() => {
+      sendPaymentLink(guest.id);
+      setSending(false);
+      showToast('Enlace enviado');
+      onClose();
+    }, 700);
   };
 
   return (
@@ -52,7 +63,8 @@ function PaymentLinkModal({ guest, onClose }) {
           options={CHANNEL_OPTIONS}
           data-testid="payment-link-channel-select"
         />
-        <Button type="submit" fullWidth data-testid="payment-link-submit-button">
+        {error && <p className="text-red-600 text-sm" data-testid="payment-link-error">{error}</p>}
+        <Button type="submit" fullWidth loading={sending} data-testid="payment-link-submit-button">
           Enviar
         </Button>
       </form>

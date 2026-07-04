@@ -17,8 +17,6 @@ const VERIFICATION_LABELS = {
   out_of_zone: 'Fuera de zona',
 };
 
-const CONTRACTED_HOURS = { 'Ana García': 30, 'Carlos Ruiz': 40, 'Jorge Martín': 40 };
-const WORKED_HOURS = { 'Ana García': 24, 'Carlos Ruiz': 38, 'Jorge Martín': 40 };
 
 function EstadoEquipo({ employees }) {
   if (employees.length === 0) {
@@ -62,6 +60,16 @@ function HistorialTab({ employees }) {
     () => employees.flatMap((e) => generateClockHistory(e.name, 30)).sort((a, b) => new Date(b.date) - new Date(a.date)),
     [employees]
   );
+
+  const workedByEmployee = useMemo(() => {
+    return employees.reduce((acc, e) => {
+      const total = records
+        .filter((r) => r.employeeName === e.name)
+        .reduce((sum, r) => sum + parseFloat(r.horas || 0), 0);
+      acc[e.name] = total;
+      return acc;
+    }, {});
+  }, [employees, records]);
 
   const handleExport = () => showToast('Exportado (mock)');
 
@@ -107,16 +115,16 @@ function HistorialTab({ employees }) {
         Exportar CSV (mock) para inspección
       </Button>
 
-      <h2 className="text-base font-semibold text-slate-900 mt-8 mb-3">Resumen semanal</h2>
+      <h2 className="text-base font-semibold text-slate-900 mt-8 mb-3">Resumen mensual</h2>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {employees.map((e) => {
-          const worked = WORKED_HOURS[e.name] ?? 0;
-          const contracted = CONTRACTED_HOURS[e.name] ?? 40;
+          const worked = workedByEmployee[e.name] ?? 0;
+          const contracted = (e.contractHours ?? 40) * 4;
           return (
             <Card key={e.id} data-testid={`weekly-summary-card-${e.id}`}>
               <p className="text-sm font-semibold text-slate-900">{e.name}</p>
               <p className="text-xs text-slate-400 mb-2">
-                {worked}h / {contracted}h contratadas
+                {worked.toFixed(1)}h / {contracted}h contratadas
               </p>
               <ProgressBar percentage={(worked / contracted) * 100} />
             </Card>

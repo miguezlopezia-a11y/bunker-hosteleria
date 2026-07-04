@@ -6,11 +6,14 @@ import { rooms as mockRooms } from '../data/rooms';
 import { beds as mockBeds } from '../data/beds';
 import { tasks as mockTasks } from '../data/tasks';
 import { communicationTemplates as mockTemplates } from '../data/communications';
+import { marketplaceServices as mockMarketplaceServices } from '../data/marketplace';
 import { maiaNotifications } from '../data/maia';
 import { addMinutes, formatTime } from '../utils/format';
 
-const STORAGE_KEY = 'bunkerhostal_state';
+const STORAGE_KEY = 'bunkerhostal_session';
+const LEGACY_STORAGE_KEY = 'bunkerhostal_state';
 const EXTERNAL_CHANNEL_KEYS = ['bookingcom', 'airbnb', 'hostelworld'];
+const PERSISTED_KEYS = ['session', 'modoDirecto', 'integrations', 'channelSync', 'marketplaceServices'];
 
 const initialState = {
   session: null, // { hostel, role, employeeName }
@@ -22,6 +25,7 @@ const initialState = {
   tasks: mockTasks,
   notifications: maiaNotifications,
   communicationTemplates: mockTemplates,
+  marketplaceServices: mockMarketplaceServices,
   integrations: {
     bookingcom: true,
     airbnb: true,
@@ -39,18 +43,22 @@ const initialState = {
 
 function loadState() {
   try {
+    // Remove any legacy storage that may contain sensitive mock personal data.
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+  } catch (e) {
+    // ignore
+  }
+  try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       const merged = { ...initialState, ...parsed };
-      // Safety-net for the Phase 1 -> Phase 2 shape migration (old sessions may
-      // have an outdated `integrations`/missing `channelSync`/`tasks` shape).
+      // Safety-net for shape migration.
       if (!parsed.integrations || typeof parsed.integrations.bookingcom === 'undefined') {
         merged.integrations = initialState.integrations;
       }
       if (!parsed.channelSync) merged.channelSync = initialState.channelSync;
-      if (!parsed.tasks) merged.tasks = initialState.tasks;
-      if (!parsed.communicationTemplates) merged.communicationTemplates = initialState.communicationTemplates;
+      if (!parsed.marketplaceServices) merged.marketplaceServices = initialState.marketplaceServices;
       return merged;
     }
   } catch (e) {
@@ -74,7 +82,11 @@ export function AppProvider({ children }) {
   const [state, setState] = useState(loadState);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const toSave = {};
+    PERSISTED_KEYS.forEach((key) => {
+      toSave[key] = state[key];
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   }, [state]);
 
   const login = (hostel, role, employeeName) => {
@@ -324,6 +336,23 @@ export function AppProvider({ children }) {
     }));
   };
 
+  // --- Phase 3: Marketplace ---
+  const addMarketplaceService = (service) => {
+    setState((prev) => ({
+      ...prev,
+      marketplaceServices: [...prev.marketplaceServices, { ...service, id: Date.now() }],
+    }));
+  };
+
+  const updateMarketplaceService = (serviceId, updates) => {
+    setState((prev) => ({
+      ...prev,
+      marketplaceServices: prev.marketplaceServices.map((s) =>
+        s.id === serviceId ? { ...s, ...updates } : s
+      ),
+    }));
+  };
+
   const value = {
     ...state,
     login,
@@ -347,6 +376,8 @@ export function AppProvider({ children }) {
     toggleTemplateActive,
     addEmployee,
     updateHostelInfo,
+    addMarketplaceService,
+    updateMarketplaceService,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

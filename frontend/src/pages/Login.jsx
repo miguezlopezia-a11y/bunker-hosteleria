@@ -22,6 +22,7 @@ export default function Login() {
   const [role, setRole] = useState('Director');
   const [employeeId, setEmployeeId] = useState('');
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const empleadoOptions = employees
     .filter((e) => e.role === 'Empleado')
@@ -37,6 +38,7 @@ export default function Login() {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
+    setLoading(true);
     const hostel = hostels.find((h) => h.slug === hostelSlug);
     let employeeName = '';
     if (role === 'Empleado') {
@@ -48,7 +50,10 @@ export default function Login() {
     }
 
     login(hostel, role, employeeName);
-    navigate(role === 'Empleado' ? '/empleado' : '/dashboard');
+    setTimeout(() => {
+      setLoading(false);
+      navigate(role === 'Empleado' ? '/empleado' : '/dashboard');
+    }, 400);
   };
 
   return (
@@ -104,7 +109,7 @@ export default function Login() {
             />
           )}
 
-          <Button type="submit" fullWidth data-testid="login-submit-button" className="mt-2">
+          <Button type="submit" fullWidth loading={loading} data-testid="login-submit-button" className="mt-2">
             Entrar
           </Button>
         </form>

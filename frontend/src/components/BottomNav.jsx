@@ -45,8 +45,8 @@ const OPERATIONS_ITEMS = [
   { id: 'fichaje', label: 'Fichaje equipo', to: '/fichaje', enabled: true },
   { id: 'limpieza', label: 'Limpieza', to: '/limpieza', enabled: true },
   { id: 'informes', label: 'Informes', to: '/informes', enabled: true },
-  { id: 'fidelizacion', label: 'Fidelización', enabled: false },
-  { id: 'marketplace', label: 'Marketplace', enabled: false },
+  { id: 'fidelizacion', label: 'Fidelización', to: '/fidelizacion', enabled: true },
+  { id: 'marketplace', label: 'Marketplace', to: '/marketplace', enabled: true },
 ];
 
 export default function BottomNav() {
@@ -78,7 +78,9 @@ export default function BottomNav() {
           type="button"
           onClick={() => setDrawerOpen(true)}
           data-testid="bottom-nav-operaciones"
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-xs font-medium text-slate-400"
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-xs font-medium transition-colors duration-150 ${
+            drawerOpen ? 'text-blue-600' : 'text-slate-400'
+          }`}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="3" width="7" height="7" rx="1" />
