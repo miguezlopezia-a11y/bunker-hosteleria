@@ -1,0 +1,10 @@
+{
+  "name": "BunkerHostal",
+  "short_name": "BunkerHostal",
+  "theme_color": "#2563eb",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/web",
+  "scope": "/web",
+  "icons": []
+}

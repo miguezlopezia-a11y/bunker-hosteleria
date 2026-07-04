@@ -1,7 +1,7 @@
-// 4 local services (prepared for Phase 2/3 Marketplace).
+// 4 local services with pilgrim discounts (mutable via AppContext for Phase 3 Marketplace).
 export const marketplaceServices = [
-  { id: 1, name: 'Lavandería El Camino', category: 'Lavandería', description: 'Servicio de lavado y secado en 2 horas.', contact: '648112233' },
-  { id: 2, name: 'Restaurante Peregrino', category: 'Restauración', description: 'Menú del peregrino a partir de las 19:00.', contact: '948223344' },
-  { id: 3, name: 'Tour Guiado Ciudad', category: 'Actividades', description: 'Ruta histórica guiada de 2 horas.', contact: '699334455' },
-  { id: 4, name: 'Transporte de Mochilas', category: 'Transporte', description: 'Traslado de mochilas a la siguiente etapa.', contact: '677445566' },
+  { id: 1, name: 'Bar El Peregrino', category: 'Restaurante', description: 'Menú del día y raciones para peregrinos.', discount: '10% dto con tarjeta BunkerHostal', phone: '948223344' },
+  { id: 2, name: 'Lavandería Rápida', category: 'Lavandería', description: 'Servicio de lavado y secado en 2 horas.', discount: 'Recogida y entrega en albergue', phone: '648112233' },
+  { id: 3, name: 'Farmacia Camino', category: 'Farmacia', description: 'Productos de primeros auxilios y cuidado del peregrino.', discount: 'Kits de primeros auxilios para peregrinos', phone: '948334455' },
+  { id: 4, name: 'Taxi Camino', category: 'Taxi', description: 'Traslados rápidos y seguros por la zona.', discount: 'Traslado estación ↔ albergue € 8', phone: '677445566' },
 ];

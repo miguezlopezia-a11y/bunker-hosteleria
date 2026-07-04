@@ -45,8 +45,8 @@ const OPERATIONS_ITEMS = [
   { id: 'fichaje', label: 'Fichaje equipo', to: '/fichaje', enabled: true },
   { id: 'limpieza', label: 'Limpieza', to: '/limpieza', enabled: true },
   { id: 'informes', label: 'Informes', to: '/informes', enabled: true },
-  { id: 'fidelizacion', label: 'Fidelización', enabled: false },
-  { id: 'marketplace', label: 'Marketplace', enabled: false },
+  { id: 'fidelizacion', label: 'Fidelización', to: '/fidelizacion', enabled: true },
+  { id: 'marketplace', label: 'Marketplace', to: '/marketplace', enabled: true },
 ];
 
 export default function BottomNav() {

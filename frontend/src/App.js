@@ -14,9 +14,12 @@ import Limpieza from './pages/Limpieza';
 import Informes from './pages/Informes';
 import Configuracion from './pages/Configuracion';
 import MaiaPanel from './pages/MaiaPanel';
+import Fidelizacion from './pages/Fidelizacion';
+import Marketplace from './pages/Marketplace';
 import EmployeePortal from './pages/employee/EmployeePlaceholder';
 import EmployeeHistorial from './pages/employee/EmployeeHistorial';
 import Web from './pages/public/Web';
+import Directorio from './pages/public/Directorio';
 import NotFound from './pages/NotFound';
 
 const MANAGER_ROLES = ['Director', 'Recepción'];
@@ -29,6 +32,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/web" element={<Web />} />
+            <Route path="/directorio" element={<Directorio />} />
 
             <Route
               path="/dashboard"
@@ -107,6 +111,22 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={MANAGER_ROLES}>
                   <MaiaPanel />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/fidelizacion"
+              element={
+                <ProtectedRoute allowedRoles={MANAGER_ROLES}>
+                  <Fidelizacion />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/marketplace"
+              element={
+                <ProtectedRoute allowedRoles={MANAGER_ROLES}>
+                  <Marketplace />
                 </ProtectedRoute>
               }
             />

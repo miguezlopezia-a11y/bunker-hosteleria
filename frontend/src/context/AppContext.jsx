@@ -6,6 +6,7 @@ import { rooms as mockRooms } from '../data/rooms';
 import { beds as mockBeds } from '../data/beds';
 import { tasks as mockTasks } from '../data/tasks';
 import { communicationTemplates as mockTemplates } from '../data/communications';
+import { marketplaceServices as mockMarketplaceServices } from '../data/marketplace';
 import { maiaNotifications } from '../data/maia';
 import { addMinutes, formatTime } from '../utils/format';
 
@@ -22,6 +23,7 @@ const initialState = {
   tasks: mockTasks,
   notifications: maiaNotifications,
   communicationTemplates: mockTemplates,
+  marketplaceServices: mockMarketplaceServices,
   integrations: {
     bookingcom: true,
     airbnb: true,
@@ -51,6 +53,7 @@ function loadState() {
       if (!parsed.channelSync) merged.channelSync = initialState.channelSync;
       if (!parsed.tasks) merged.tasks = initialState.tasks;
       if (!parsed.communicationTemplates) merged.communicationTemplates = initialState.communicationTemplates;
+      if (!parsed.marketplaceServices) merged.marketplaceServices = initialState.marketplaceServices;
       return merged;
     }
   } catch (e) {
@@ -324,6 +327,23 @@ export function AppProvider({ children }) {
     }));
   };
 
+  // --- Phase 3: Marketplace ---
+  const addMarketplaceService = (service) => {
+    setState((prev) => ({
+      ...prev,
+      marketplaceServices: [...prev.marketplaceServices, { ...service, id: Date.now() }],
+    }));
+  };
+
+  const updateMarketplaceService = (serviceId, updates) => {
+    setState((prev) => ({
+      ...prev,
+      marketplaceServices: prev.marketplaceServices.map((s) =>
+        s.id === serviceId ? { ...s, ...updates } : s
+      ),
+    }));
+  };
+
   const value = {
     ...state,
     login,
@@ -347,6 +367,8 @@ export function AppProvider({ children }) {
     toggleTemplateActive,
     addEmployee,
     updateHostelInfo,
+    addMarketplaceService,
+    updateMarketplaceService,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

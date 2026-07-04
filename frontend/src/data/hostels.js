@@ -9,6 +9,8 @@ export const hostels = [
     email: 'info@albergueelcamino.com',
     capacity: 20,
     basePrice: 15,
+    comunidad: 'Navarra',
+    rating: 4.7,
   },
   {
     id: 2,
@@ -19,6 +21,8 @@ export const hostels = [
     email: 'info@alberguelospinos.com',
     capacity: 24,
     basePrice: 16,
+    comunidad: 'La Rioja',
+    rating: 4.5,
   },
   {
     id: 3,
@@ -29,6 +33,8 @@ export const hostels = [
     email: 'info@hostalsantamaria.com',
     capacity: 18,
     basePrice: 18,
+    comunidad: 'Castilla y León',
+    rating: 4.9,
   },
 ];
 

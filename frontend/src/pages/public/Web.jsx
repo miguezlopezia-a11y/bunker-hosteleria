@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { getHostelBySlug } from '../../data/hostels';
@@ -18,6 +18,18 @@ export default function Web() {
   const [searchParams] = useSearchParams();
   const { beds, addPublicBooking } = useApp();
   const hostel = getHostelBySlug(searchParams.get('hostel'));
+
+  useEffect(() => {
+    const city = hostel.address.split(',').pop().trim();
+    document.title = `${hostel.name} · ${city} · Reserva directa`;
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) {
+      meta.setAttribute(
+        'content',
+        `${hostel.name} en ${city}. Precio desde ${formatEuro(hostel.basePrice)}/noche. Reserva directa sin comisiones.`
+      );
+    }
+  }, [hostel]);
 
   const [checkin, setCheckin] = useState(toDateInputValue(new Date()));
   const [checkout, setCheckout] = useState(toDateInputValue(addDays(new Date(), 1)));

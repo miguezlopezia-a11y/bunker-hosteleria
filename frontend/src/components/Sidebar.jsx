@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import Badge from './Badge';
 
 const NAV_ITEMS = [
   { id: 'hoy', label: 'Hoy', to: '/dashboard' },
@@ -13,11 +12,8 @@ const ENABLED_ITEMS = [
   { id: 'fichaje', label: 'Fichaje equipo', to: '/fichaje' },
   { id: 'limpieza', label: 'Limpieza', to: '/limpieza' },
   { id: 'informes', label: 'Informes', to: '/informes' },
-];
-
-const PHASE3_ITEMS = [
-  { id: 'fidelizacion', label: 'Fidelización' },
-  { id: 'marketplace', label: 'Marketplace' },
+  { id: 'fidelizacion', label: 'Fidelización', to: '/fidelizacion' },
+  { id: 'marketplace', label: 'Marketplace', to: '/marketplace' },
 ];
 
 const FOOTER_ITEMS = [
@@ -95,17 +91,6 @@ export default function Sidebar() {
           >
             {item.label}
           </Link>
-        ))}
-
-        {PHASE3_ITEMS.map((item) => (
-          <div
-            key={item.id}
-            data-testid={`sidebar-link-${item.id}`}
-            className="px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 flex items-center justify-between cursor-not-allowed"
-          >
-            {item.label}
-            <Badge variant="proximamente">Próximamente</Badge>
-          </div>
         ))}
 
         <div className="h-px bg-gray-200 my-2" />
