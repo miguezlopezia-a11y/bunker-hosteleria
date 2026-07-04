@@ -9,7 +9,7 @@ import Button from '../components/Button';
 import { formatDate, formatEuro, isSameDay } from '../utils/format';
 
 export default function Dashboard() {
-  const { session, reservations, guests, beds, notifications } = useApp();
+  const { session, reservations, guests, beds, notifications, modoDirecto } = useApp();
   const navigate = useNavigate();
   const [caminoOpen, setCaminoOpen] = useState(true);
   const today = new Date();
@@ -27,6 +27,21 @@ export default function Dashboard() {
   return (
     <ManagerLayout>
       <div className="p-4 md:p-8 max-w-5xl mx-auto" data-testid="dashboard-page">
+        {modoDirecto && (
+          <button
+            type="button"
+            onClick={() => navigate('/reservas')}
+            data-testid="modo-directo-indicator"
+            className="w-full text-left bg-blue-50 border border-blue-200 text-blue-700 rounded-lg px-4 py-2.5 text-sm font-medium mb-2 hover:bg-blue-100 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center gap-2"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v4l3 3" />
+            </svg>
+            Modo Directo activo — canales externos en pausa, solo reservas directas · Gestionar →
+          </button>
+        )}
+
         {(alertasMaia.length > 0 || pagoPendiente) && (
           <div className="flex flex-col gap-2 mb-5">
             {alertasMaia.length > 0 && (
