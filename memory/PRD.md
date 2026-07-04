@@ -145,3 +145,50 @@ devices but not treated as a defect.
 - P2: Fidelización (loyalty points program, uses `src/data/loyalty.js`).
 - P2: Marketplace (local services, uses `src/data/marketplace.js`).
 - P3: `/directorio` page.
+
+---
+
+## Phase 3 — Growth & Public Extras (Feb 2026)
+
+### User choices (gathered via ask_human)
+1. Marketplace "Añadir servicio"/"Gestionar" persist in Context immediately (like Comunicaciones
+   templates in Phase 2).
+2. Hostels assigned `comunidad` by real city: Albergue El Camino (Pamplona)=Navarra, Albergue Los
+   Pinos (Logroño)=La Rioja, Hostal Santa María (Burgos)=Castilla y León; Galicia filter yields a
+   valid empty-state demo (no matching hostel).
+3. Mock star ratings 4.5–4.9 per hostel.
+
+### What's been implemented
+- Fidelizacion (`/fidelizacion`): informational BETA page — status card, 3 "Cómo funciona" cards,
+  read-only ranking table from `src/data/loyalty.js` (extended with `routesCompleted`/
+  `lastCamino`), disabled CTA with tooltip.
+- Marketplace (`/marketplace`): 4 mock services from `src/data/marketplace.js` (restructured with
+  `discount`/`phone`), "+ Añadir servicio" and "Gestionar" share one modal/form, both persist via
+  new `AppContext` state `marketplaceServices` + `addMarketplaceService`/`updateMarketplaceService`
+  actions; static "Comisiones" card.
+- Directorio (`/directorio`, new **public** route, no auth): search + Comunidad + Capacidad
+  filters over `src/data/hostels.js` (extended with `comunidad`/`rating`), hostel cards linking to
+  `/web?hostel={slug}`, map placeholder, footer CTA, empty state. Sets `document.title` +
+  `<meta name="description">` dynamically via `useEffect` (no react-helmet).
+- `/web` (Phase 1 page) extended with the same dynamic SEO `useEffect`, producing per-hostel
+  titles like "Albergue El Camino · Pamplona · Reserva directa".
+- `public/manifest.json` created (name/short_name/theme_color `#2563eb`/start_url+scope `/web`,
+  no icons, no service worker) and linked from `public/index.html`.
+- Nav: Fidelización + Marketplace moved from disabled "Próximamente" to fully enabled links in
+  both `Sidebar.jsx` and the `BottomNav.jsx` Operaciones drawer.
+- Also shipped (post-Phase-2 user requests): Dashboard "Modo Directo activo" indicator banner
+  (links to Reservas) and a "Compartir enlace de reserva directa" card (copy-to-clipboard with
+  execCommand fallback + "Enviar por WhatsApp" via wa.me).
+
+### Testing status
+`testing_agent_v3` ran a full Phase 3 pass: 100% pass rate, zero bugs. Verified public access to
+`/directorio` without login, all filters (incl. Galicia empty state), per-hostel SEO title/meta on
+both `/directorio` and `/web`, manifest.json validity, Marketplace add/edit/persist flow, and the
+2 post-Phase-2 Dashboard additions. One non-blocking note: Playwright's `force=True` click on the
+mobile "Operaciones" button was occasionally flaky (raw JS click always worked) — same known
+automation-only quirk noted in the Phase 2 report, not an app defect.
+
+### Next tasks
+All 3 planned phases of the BunkerHostal spec are now complete end-to-end (mock/frontend-only, as
+scoped). Natural next steps if the product continues: wire a real backend + auth, real Stripe/SES
+Hospedajes/Booking.com/Airbnb integrations, and a real map for the Directorio.
