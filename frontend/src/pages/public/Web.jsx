@@ -55,6 +55,9 @@ export default function Web() {
     if (!form.document) newErrors.document = 'Campo obligatorio';
     if (!form.nationality) newErrors.nationality = 'Campo obligatorio';
     if (!form.conditions) newErrors.conditions = 'Campo obligatorio';
+    if (new Date(checkout) <= new Date(checkin)) {
+      newErrors.dates = 'La salida debe ser posterior a la entrada';
+    }
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
@@ -135,6 +138,9 @@ export default function Web() {
               </Button>
             </div>
           </div>
+          {errors.dates && (
+            <p className="text-red-600 text-sm mt-2" data-testid="public-booking-dates-error">{errors.dates}</p>
+          )}
         </Card>
 
         {showAvailability && !selectedBed && (
