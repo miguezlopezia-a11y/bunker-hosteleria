@@ -1,8 +1,8 @@
 # BunkerHostal
 
-Prototipo UI de un PMS ligero para albergues y hostales: panel de gestión, web pública de reservas directas, portal del empleado y asistente MaiA.
+Prototipo UI de un PMS ligero para albergues y hostales: panel de gestión, web pública de reservas directas, portal del empleado, asistente MaiA, marketplace de servicios y directorio de albergues.
 
-> **Estado:** Fase 2 completa. Prototipo visual/mock para validar flujos de usuario. No está conectado a APIs reales de pagos, policía, firma ni alertas.
+> **Estado:** Fase 3 completa. Prototipo visual/mock para validar flujos de usuario. No está conectado a APIs reales de pagos, policía, firma ni alertas.
 
 ## Estructura del repo
 
@@ -33,8 +33,9 @@ npm test           # tests con CRA
 | Recepción   | 1234 | Panel completo                   |
 | Empleado    | 1234 | Seleccionar empleado en login    |
 
-## Funcionalidades principales (Fase 2)
+## Funcionalidades principales
 
+### Fase 2
 - Dashboard con KPIs, llegadas/hoy y enlace de reserva directa.
 - Reservas: lista, calendario de camas y Channel Manager con Modo Directo.
 - Check-in en 3 pasos y huéspedes activos.
@@ -43,12 +44,18 @@ npm test           # tests con CRA
 - Portal del empleado: tareas y fichaje.
 - Web pública (`/web`): reserva directa sin comisiones.
 
+### Fase 3
+- Fidelización: programa de puntos y ranking de peregrinos.
+- Marketplace: servicios locales con descuentos para peregrinos.
+- Directorio público (`/directorio`): listado de albergues del Camino.
+
 ## Decisiones técnicas
 
 - **Sin dependencias de componentes pesadas:** no usa shadcn/ui, Radix, Lucide ni Recharts.
 - **Sin tracking ni fuentes externas:** no hay PostHog, Google Fonts ni scripts de terceros.
 - **Estado:** gestión centralizada en `AppContext` con persistencia limitada a sesión y preferencias no sensibles.
-- **PWA básica:** manifest + service worker para cache offline de la shell.
+- **PWA básica:** manifest + service worker + iconos PNG/SVG para cache offline de la shell.
+- **Tests:** smoke tests con React Testing Library.
 
 ## Notas legales/mock
 

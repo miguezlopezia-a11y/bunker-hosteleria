@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
+import { formatPhone } from '../utils/format';
 import ManagerLayout from '../components/ManagerLayout';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
@@ -119,7 +120,7 @@ export default function Marketplace() {
                   </div>
                   <p className="text-sm text-slate-600">{s.description}</p>
                   <p className="text-xs text-green-600 mt-1">{s.discount}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{s.phone}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{formatPhone(s.phone)}</p>
                 </div>
                 <button
                   type="button"

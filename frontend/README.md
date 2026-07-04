@@ -18,13 +18,15 @@ Prototipo UI standalone del panel de gestión y la web pública de BunkerHostal.
 ## Estructura
 
 - `src/components/` — componentes reutilizables (Input, Select, Button, Modal, Card, etc.)
-- `src/pages/` — vistas del panel y la web pública (`/web`)
+- `src/pages/` — vistas del panel y la web pública (`/web`, `/directorio`)
 - `src/context/` — estado global (AppContext, ToastContext)
 - `src/data/` — datos mock para el prototipo
 - `src/utils/` — helpers de formato y fecha
+- `src/App.test.js` — smoke tests principales
 
 ## Notas
 
 - Este frontend es un **mock visual** para validar flujos de usuario.
 - No está conectado a servicios reales de pagos, policía, firma ni alertas.
 - No se incluye tracking, analytics ni fuentes externas.
+- Incluye service worker básico para comportamiento PWA offline.
