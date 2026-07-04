@@ -1,6 +1,7 @@
-// Booking.com, Airbnb, Hostelworld sync status (prepared for Phase 2 Channel Manager).
+// Channel metadata for the Channel Manager tab. Live connected/lastSync state
+// lives in AppContext (`integrations` + `channelSync`), keyed by these ids.
 export const channels = [
-  { id: 1, name: 'Booking.com', status: 'conectado', lastSync: new Date() },
-  { id: 2, name: 'Airbnb', status: 'conectado', lastSync: new Date() },
-  { id: 3, name: 'Hostelworld', status: 'desconectado', lastSync: null },
+  { id: 'bookingcom', name: 'Booking.com' },
+  { id: 'airbnb', name: 'Airbnb' },
+  { id: 'hostelworld', name: 'Hostelworld' },
 ];

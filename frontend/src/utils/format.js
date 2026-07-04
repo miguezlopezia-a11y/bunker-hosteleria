@@ -45,3 +45,36 @@ export function isBetweenInclusive(day, start, end) {
   const e = startOfDay(end).getTime();
   return d >= s && d < e;
 }
+
+export function addMinutes(date, minutes) {
+  const d = new Date(date);
+  d.setMinutes(d.getMinutes() + minutes);
+  return d;
+}
+
+export function formatTime(date) {
+  const d = new Date(date);
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+export function minutesAgo(date) {
+  if (!date) return null;
+  const diffMs = Date.now() - new Date(date).getTime();
+  return Math.max(0, Math.round(diffMs / 60000));
+}
+
+export function formatRelativeDateTime(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  const time = formatTime(d);
+  if (isSameDay(d, new Date())) return `Hoy ${time}`;
+  if (isSameDay(d, addDays(new Date(), -1))) return `Ayer ${time}`;
+  return `${formatDate(d)} ${time}`;
+}
+
+export function formatEuroDecimal(amount) {
+  const formatted = Number(amount).toFixed(2).replace('.', ',').replace(/,00$/, '');
+  return `€\u00A0${formatted}`;
+}

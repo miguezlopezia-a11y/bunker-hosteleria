@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
+import { channels } from '../data/channels';
 import ManagerLayout from '../components/ManagerLayout';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
@@ -10,7 +11,8 @@ import Tabs from '../components/Tabs';
 import Modal from '../components/Modal';
 import Input from '../components/Input';
 import Select from '../components/Select';
-import { formatDate, formatEuro, addDays, isBetweenInclusive } from '../utils/format';
+import Toggle from '../components/Toggle';
+import { formatDate, formatEuro, addDays, isBetweenInclusive, minutesAgo } from '../utils/format';
 
 const ORIGIN_OPTIONS = [
   { value: 'Booking.com', label: 'Booking.com' },
@@ -303,6 +305,108 @@ function CalendarTab({ beds, guests }) {
   );
 }
 
+function ChannelManagerTab() {
+  const { integrations, channelSync, modoDirecto, setModoDirecto, toggleChannel, syncChannels, reservations, beds } = useApp();
+  const { showToast } = useToast();
+
+  const freeBeds = beds.filter((b) => b.status === 'free').length;
+
+  const handleSync = () => {
+    showToast('Sincronizando canales...');
+    syncChannels();
+  };
+
+  return (
+    <div data-testid="channel-manager-tab-content" className="flex flex-col gap-4">
+      <Card className={modoDirecto ? 'border-yellow-300' : 'border-green-300'}>
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <p className="text-sm font-semibold text-slate-900">
+            Modo Directo — Solo reservas desde tu página propia
+          </p>
+          <Toggle checked={modoDirecto} onChange={setModoDirecto} testId="modo-directo-toggle" label="Modo Directo" />
+        </div>
+        {modoDirecto ? (
+          <p className="bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg px-3 py-2 text-sm" data-testid="modo-directo-warning">
+            Tu albergue aparece como completo en canales externos. Solo recibirás reservas directas.
+          </p>
+        ) : (
+          <p className="bg-green-50 border border-green-200 text-green-700 rounded-lg px-3 py-2 text-sm" data-testid="modo-directo-success">
+            Sincronización normal activa en todos los canales.
+          </p>
+        )}
+        <p className="text-xs text-slate-400 mt-2">
+          Nota legal: pausar canales externos es tu derecho. Consulta con tu asesor legal para asegurar el cumplimiento de tus contratos vigentes.
+        </p>
+      </Card>
+
+      <Card>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold text-slate-900">Canales conectados</h2>
+          <Button variant="secondary" onClick={handleSync} data-testid="sync-channels-button">
+            Sincronizar ahora
+          </Button>
+        </div>
+        <div className="flex flex-col gap-2">
+          {channels.map((ch) => {
+            const connected = integrations[ch.id];
+            const mins = minutesAgo(channelSync[ch.id]);
+            const availability = modoDirecto ? 0 : freeBeds;
+            return (
+              <div
+                key={ch.id}
+                className="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-3"
+                data-testid={`channel-row-${ch.id}`}
+              >
+                <div>
+                  <p className="text-sm font-medium text-slate-900">{ch.name}</p>
+                  <p className="text-xs text-slate-400">
+                    {connected ? (mins != null ? `Última sync: hace ${mins} min` : 'Sincronizando...') : 'No conectado'}
+                    {connected && ` · Disponibilidad enviada: ${availability} camas`}
+                  </p>
+                </div>
+                <Toggle
+                  checked={connected}
+                  onChange={() => toggleChannel(ch.id)}
+                  testId={`channel-toggle-${ch.id}`}
+                  label={`Conectar ${ch.name}`}
+                />
+              </div>
+            );
+          })}
+          <div className="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-3 bg-gray-50">
+            <div>
+              <p className="text-sm font-medium text-slate-900">BunkerHostal Directo</p>
+              <p className="text-xs text-slate-400">Siempre disponible en tu página propia</p>
+            </div>
+            <Badge variant="activo">ON</Badge>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="text-base font-semibold text-slate-900 mb-3">Bandeja de reservas</h2>
+        {reservations.length === 0 ? (
+          <p className="text-center text-slate-400 py-6" data-testid="channel-inbox-empty-state">
+            No hay reservas para este período.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2" data-testid="channel-inbox-list">
+            {reservations.map((r) => (
+              <div key={r.id} className="flex items-center justify-between gap-3 border-b border-gray-100 last:border-0 pb-2 last:pb-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-slate-900">{r.guestName}</p>
+                  <Badge variant={r.origin}>{r.origin}</Badge>
+                </div>
+                <Badge variant={r.status}>{r.status === 'pendiente' ? 'Pendiente' : 'Check-in hecho'}</Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
 export default function Reservas() {
   const { reservations, beds, guests } = useApp();
   const navigate = useNavigate();
@@ -323,6 +427,7 @@ export default function Reservas() {
           tabs={[
             { id: 'lista', label: 'Lista' },
             { id: 'calendario', label: 'Calendario' },
+            { id: 'channel-manager', label: 'Channel Manager' },
           ]}
           activeTab={activeTab}
           onChange={setActiveTab}
@@ -330,11 +435,9 @@ export default function Reservas() {
         />
 
         <div className="mt-4">
-          {activeTab === 'lista' ? (
-            <ReservationsList reservations={reservations} navigate={navigate} />
-          ) : (
-            <CalendarTab beds={beds} guests={guests} />
-          )}
+          {activeTab === 'lista' && <ReservationsList reservations={reservations} navigate={navigate} />}
+          {activeTab === 'calendario' && <CalendarTab beds={beds} guests={guests} />}
+          {activeTab === 'channel-manager' && <ChannelManagerTab />}
         </div>
 
         <NewReservationModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />

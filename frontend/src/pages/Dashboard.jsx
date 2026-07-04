@@ -21,7 +21,7 @@ export default function Dashboard() {
   const disponibles = beds.filter((b) => b.status === 'free');
   const occupiedCount = beds.filter((b) => b.status === 'occupied').length;
 
-  const alertasMaia = notifications.filter((n) => n.type === 'alerta');
+  const alertasMaia = notifications.filter((n) => n.alerta);
   const pagoPendiente = guests.find((g) => g.paymentStatus === 'pendiente');
 
   return (
@@ -30,12 +30,14 @@ export default function Dashboard() {
         {(alertasMaia.length > 0 || pagoPendiente) && (
           <div className="flex flex-col gap-2 mb-5">
             {alertasMaia.length > 0 && (
-              <div
-                className="bg-red-50 border border-red-200 text-red-600 rounded-lg px-4 py-2.5 text-sm font-medium"
+              <button
+                type="button"
+                onClick={() => navigate('/maia')}
                 data-testid="alert-maia"
+                className="text-left bg-red-50 border border-red-200 text-red-600 rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-red-100 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 {alertasMaia.length} alertas de MaiA — Ver panel →
-              </div>
+              </button>
             )}
             {pagoPendiente && (
               <div
