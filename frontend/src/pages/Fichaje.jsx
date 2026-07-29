@@ -1,15 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
-import { generateClockHistory } from '../utils/clockHistory';
 import ManagerLayout from '../components/ManagerLayout';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 import Button from '../components/Button';
 import Tabs from '../components/Tabs';
+import Input from '../components/Input';
 import StatusDot from '../components/StatusDot';
 import ProgressBar from '../components/ProgressBar';
-import { formatDate } from '../utils/format';
+import { formatDate, formatTime, startOfDay } from '../utils/format';
 
 const VERIFICATION_LABELS = {
   wifi: 'WiFi albergue',
@@ -17,8 +17,57 @@ const VERIFICATION_LABELS = {
   out_of_zone: 'Fuera de zona',
 };
 
+function resolveVerificationVariant(record) {
+  if (record.verificado) {
+    return record.lat != null ? 'gps' : 'wifi';
+  }
+  return 'out_of_zone';
+}
+
+function buildHistory(fichajes) {
+  const byDay = new Map();
+  const sorted = [...fichajes].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  sorted.forEach((f) => {
+    const day = startOfDay(new Date(f.timestamp)).toISOString();
+    const key = `${f.empleado_nombre}|${day}`;
+    if (!byDay.has(key)) {
+      byDay.set(key, { employeeName: f.empleado_nombre, date: f.timestamp, entrada: null, salida: null, records: [] });
+    }
+    const item = byDay.get(key);
+    item.records.push(f);
+    if (f.tipo === 'entrada') item.entrada = f;
+    if (f.tipo === 'salida') item.salida = f;
+  });
+  return Array.from(byDay.values())
+    .map((item) => {
+      const start = item.entrada ? new Date(item.entrada.timestamp).getTime() : null;
+      const end = item.salida ? new Date(item.salida.timestamp).getTime() : null;
+      let horas = '-';
+      if (start && end && end > start) {
+        horas = ((end - start) / 3600000).toFixed(1);
+      }
+      const verification = item.records.length > 0 ? resolveVerificationVariant(item.records[item.records.length - 1]) : 'wifi';
+      return {
+        employeeName: item.employeeName,
+        date: item.date,
+        entrada: item.entrada ? formatTime(item.entrada.timestamp) : '—',
+        salida: item.salida ? formatTime(item.salida.timestamp) : '—',
+        horas,
+        verification,
+      };
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+function formatTimeInput(timeStr) {
+  if (!timeStr) return '09:00';
+  return timeStr.slice(0, 5);
+}
 
 function EstadoEquipo({ employees }) {
+  const { updateEmployeeExpectedCheckin } = useApp();
+  const { showToast } = useToast();
+
   if (employees.length === 0) {
     return (
       <p className="text-center text-slate-400 py-10" data-testid="fichaje-empty-state">
@@ -26,6 +75,16 @@ function EstadoEquipo({ employees }) {
       </p>
     );
   }
+
+  const handleTimeChange = async (e, empleadoId) => {
+    const { error } = await updateEmployeeExpectedCheckin(empleadoId, `${e.target.value}:00`);
+    if (error) {
+      showToast(error, 'error');
+      return;
+    }
+    showToast('Horario esperado actualizado');
+  };
+
   return (
     <div className="flex flex-col gap-2" data-testid="team-status-list">
       {employees.map((e) => {
@@ -44,9 +103,19 @@ function EstadoEquipo({ employees }) {
                 {!e.clockedIn && e.clockOutTime && ` · Salida: ${e.clockOutTime}`}
               </p>
             </div>
-            {e.verification && (
-              <Badge variant={e.verification}>{VERIFICATION_LABELS[e.verification]}</Badge>
-            )}
+            <div className="flex items-center gap-3">
+              <Input
+                label="Entrada esperada"
+                type="time"
+                value={formatTimeInput(e.expectedCheckinTime)}
+                onChange={(ev) => handleTimeChange(ev, e.id)}
+                className="w-32"
+                data-testid={`employee-expected-time-${e.id}`}
+              />
+              {e.verification && (
+                <Badge variant={e.verification}>{VERIFICATION_LABELS[e.verification]}</Badge>
+              )}
+            </div>
           </Card>
         );
       })}
@@ -54,18 +123,15 @@ function EstadoEquipo({ employees }) {
   );
 }
 
-function HistorialTab({ employees }) {
+function HistorialTab({ employees, fichajes }) {
   const { showToast } = useToast();
-  const records = useMemo(
-    () => employees.flatMap((e) => generateClockHistory(e.name, 30)).sort((a, b) => new Date(b.date) - new Date(a.date)),
-    [employees]
-  );
+  const records = useMemo(() => buildHistory(fichajes), [fichajes]);
 
   const workedByEmployee = useMemo(() => {
     return employees.reduce((acc, e) => {
       const total = records
-        .filter((r) => r.employeeName === e.name)
-        .reduce((sum, r) => sum + parseFloat(r.horas || 0), 0);
+        .filter((r) => r.employeeName === e.name && r.horas !== '-')
+        .reduce((sum, r) => sum + parseFloat(r.horas), 0);
       acc[e.name] = total;
       return acc;
     }, {});
@@ -136,7 +202,7 @@ function HistorialTab({ employees }) {
 }
 
 export default function Fichaje() {
-  const { employees } = useApp();
+  const { employees, fichajes } = useApp();
   const [activeTab, setActiveTab] = useState('estado');
 
   return (
@@ -155,7 +221,7 @@ export default function Fichaje() {
         />
 
         <div className="mt-4">
-          {activeTab === 'estado' ? <EstadoEquipo employees={employees} /> : <HistorialTab employees={employees} />}
+          {activeTab === 'estado' ? <EstadoEquipo employees={employees} /> : <HistorialTab employees={employees} fichajes={fichajes} />}
         </div>
       </div>
     </ManagerLayout>

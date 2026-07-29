@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useApp } from '../../context/AppContext';
-import { getHostelBySlug } from '../../data/hostels';
+import { publicService } from '../../services/publicService';
 import Card from '../../components/Card';
 import Input from '../../components/Input';
 import Select from '../../components/Select';
 import Button from '../../components/Button';
+import LoadingSpinner from '../../components/LoadingSpinner';
 import { formatEuro, addDays, formatPhone } from '../../utils/format';
 
 const PERSON_OPTIONS = Array.from({ length: 6 }, (_, i) => ({ value: String(i + 1), label: `${i + 1}` }));
@@ -14,10 +14,19 @@ function toDateInputValue(date) {
   return date.toISOString().slice(0, 10);
 }
 
+function toDbDate(date) {
+  const d = new Date(date);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function Web() {
   const [searchParams] = useSearchParams();
-  const { beds, addPublicBooking } = useApp();
-  const hostel = getHostelBySlug(searchParams.get('hostel'));
+  const slug = searchParams.get('hostel');
+
+  const [hostel, setHostel] = useState(null);
+  const [beds, setBeds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState('');
 
   const [checkin, setCheckin] = useState(toDateInputValue(new Date()));
   const [checkout, setCheckout] = useState(toDateInputValue(addDays(new Date(), 1)));
@@ -38,6 +47,36 @@ export default function Web() {
   });
   const [errors, setErrors] = useState({});
 
+  useEffect(() => {
+    if (!slug) {
+      setPageError('Falta el slug del albergue');
+      setLoading(false);
+      return;
+    }
+
+    async function load() {
+      try {
+        const [{ data: hostelData, error: hostelError }, { data: bedsData, error: bedsError }] = await Promise.all([
+          publicService.getHostalBySlug(slug),
+          publicService.getBedsByHostalSlug(slug),
+        ]);
+
+        if (hostelError || !hostelData) {
+          setPageError('No se encontró el albergue.');
+        } else {
+          setHostel(hostelData);
+          setBeds(bedsData || []);
+        }
+      } catch (err) {
+        setPageError('Error cargando la página.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, [slug]);
+
   const availableBeds = beds.filter((b) => b.status === 'free');
 
   const handleFormChange = (field) => (e) => {
@@ -45,7 +84,7 @@ export default function Web() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
     if (!form.name) newErrors.name = 'Campo obligatorio';
@@ -63,24 +102,45 @@ export default function Web() {
     if (Object.keys(newErrors).length > 0) return;
 
     setSubmitting(true);
-    setTimeout(() => {
-      addPublicBooking({
-      bedId: selectedBed.id,
-      guest: {
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        document: form.document,
-        nationality: form.nationality,
-      },
-      checkin: new Date(checkin),
-      checkout: new Date(checkout),
-      price: hostel.basePrice,
+    const { error } = await publicService.createPublicBooking({
+      slug,
+      bedLabel: selectedBed.label,
+      guestName: form.name,
+      guestEmail: form.email,
+      guestPhone: form.phone,
+      guestDocument: form.document,
+      guestNationality: form.nationality,
+      checkin: toDbDate(checkin),
+      checkout: toDbDate(checkout),
+      price: hostel.base_price,
     });
-      setSubmitting(false);
-      setSuccess(true);
-    }, 700);
+    setSubmitting(false);
+
+    if (error) {
+      setErrors({ submit: 'No se pudo completar la reserva. Inténtalo de nuevo.' });
+      return;
+    }
+
+    setSuccess(true);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (pageError || !hostel) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="max-w-md text-center">
+          <p className="text-red-600">{pageError || 'Albergue no disponible'}</p>
+        </Card>
+      </div>
+    );
+  }
 
   if (success) {
     return (
@@ -104,10 +164,7 @@ export default function Web() {
         <h1 className="text-3xl font-bold text-slate-900 text-center" data-testid="public-booking-title">
           {hostel.name} — Reserva directa sin comisiones
         </h1>
-        <p className="text-center text-slate-600 mt-2">
-          {hostel.address} · {formatPhone(hostel.phone)}
-        </p>
-        <p className="text-center text-slate-400 text-sm mt-1">Precio desde {formatEuro(hostel.basePrice)}/noche</p>
+        <p className="text-center text-slate-400 text-sm mt-1">Precio desde {formatEuro(hostel.base_price)}/noche</p>
 
         <Card className="mt-8">
           <h2 className="text-base font-semibold text-slate-900 mb-4">Disponibilidad</h2>
@@ -159,15 +216,15 @@ export default function Web() {
               <div className="flex flex-col gap-2">
                 {availableBeds.map((b) => (
                   <div
-                    key={b.id}
+                    key={b.label}
                     className="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-3"
-                    data-testid={`available-bed-${b.id}`}
+                    data-testid={`available-bed-${b.label}`}
                   >
                     <div>
-                      <p className="text-sm font-medium text-slate-900">Cama {b.id}</p>
-                      <p className="text-xs text-slate-400">{formatEuro(hostel.basePrice)}/noche</p>
+                      <p className="text-sm font-medium text-slate-900">Cama {b.label}</p>
+                      <p className="text-xs text-slate-400">{formatEuro(hostel.base_price)}/noche</p>
                     </div>
-                    <Button onClick={() => setSelectedBed(b)} data-testid={`reserve-bed-button-${b.id}`}>
+                    <Button onClick={() => setSelectedBed(b)} data-testid={`reserve-bed-button-${b.label}`}>
                       Reservar esta cama
                     </Button>
                   </div>
@@ -180,7 +237,7 @@ export default function Web() {
         {selectedBed && (
           <Card className="mt-4" data-testid="public-booking-form-card">
             <h2 className="text-base font-semibold text-slate-900 mb-4">
-              Completa tu reserva · Cama {selectedBed.id}
+              Completa tu reserva · Cama {selectedBed.label}
             </h2>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4" data-testid="public-booking-form">
               <Input label="Nombre completo" required value={form.name} onChange={handleFormChange('name')} error={errors.name} data-testid="public-booking-name-input" />
@@ -226,10 +283,11 @@ export default function Web() {
                 Acepto las condiciones
               </label>
               {errors.conditions && <p className="text-red-600 text-xs">{errors.conditions}</p>}
+              {errors.submit && <p className="text-red-600 text-sm" role="alert">{errors.submit}</p>}
 
               <Button type="submit" fullWidth loading={submitting} data-testid="public-booking-submit-button">
                 {form.paymentMethod === 'tarjeta'
-                  ? `Confirmar y pagar ${formatEuro(hostel.basePrice)}`
+                  ? `Confirmar y pagar ${formatEuro(hostel.base_price)}`
                   : 'Reservar y garantizar con tarjeta'}
               </Button>
             </form>

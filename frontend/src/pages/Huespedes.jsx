@@ -15,6 +15,56 @@ const CHANNEL_OPTIONS = [
   { value: 'Email', label: 'Email' },
 ];
 
+function SurveyShareModal({ surveyUrl, guestName, autoSent, onClose }) {
+  if (!surveyUrl) return null;
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(surveyUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (e) {
+      setCopied(false);
+    }
+  };
+
+  const whatsappText = encodeURIComponent(
+    `¡Hola ${guestName || ''}! Gracias por alojarte con nosotros. ¿Nos dejas tu valoración? Solo 10 segundos: ${surveyUrl}`
+  );
+  const whatsappUrl = `https://wa.me/?text=${whatsappText}`;
+
+  return (
+    <Modal isOpen onClose={onClose} title="Compartir encuesta" testId="survey-share-modal" size="sm">
+      <div className="flex flex-col gap-4" data-testid="survey-share-content">
+        {!autoSent && (
+          <p className="text-sm text-amber-700 bg-amber-50 rounded p-2" data-testid="survey-manual-hint">
+            El envío automático está desactivado. Copia el enlace para enviarlo manualmente.
+          </p>
+        )}
+        <Input
+          label="Enlace de la encuesta"
+          value={surveyUrl}
+          readOnly
+          data-testid="survey-url-input"
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <Button variant="secondary" onClick={handleCopy} data-testid="survey-copy-button">
+            {copied ? 'Copiado' : 'Copiar enlace'}
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => window.open(whatsappUrl, '_blank', 'noopener,noreferrer')}
+            data-testid="survey-whatsapp-button"
+          >
+            WhatsApp
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function PaymentLinkModal({ guest, onClose }) {
   const { sendPaymentLink } = useApp();
   const { showToast } = useToast();
@@ -129,13 +179,21 @@ export default function Huespedes() {
   const [search, setSearch] = useState('');
   const [selectedGuest, setSelectedGuest] = useState(null);
   const [paymentGuest, setPaymentGuest] = useState(null);
+  const [surveyShare, setSurveyShare] = useState(null);
 
   const filtered = guests.filter((g) => g.name.toLowerCase().includes(search.toLowerCase()));
 
-  const handleCheckout = (guestId) => {
-    checkOutGuest(guestId);
+  const handleCheckout = async (guestId) => {
+    const { error, surveyUrl, autoSent } = await checkOutGuest(guestId);
+    if (error) {
+      showToast(error, 'error');
+      return;
+    }
     showToast('Check-out realizado');
     setSelectedGuest(null);
+    if (surveyUrl) {
+      setSurveyShare({ surveyUrl, guestName: selectedGuest?.name, autoSent });
+    }
   };
 
   return (
@@ -201,6 +259,12 @@ export default function Huespedes() {
           onSendPaymentLink={(g) => setPaymentGuest(g)}
         />
         <PaymentLinkModal guest={paymentGuest} onClose={() => setPaymentGuest(null)} />
+        <SurveyShareModal
+          surveyUrl={surveyShare?.surveyUrl}
+          guestName={surveyShare?.guestName}
+          autoSent={surveyShare?.autoSent}
+          onClose={() => setSurveyShare(null)}
+        />
       </div>
     </ManagerLayout>
   );

@@ -1,6 +1,37 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { hostels } from '../../data/hostels';
+const HOSTELS = [
+  {
+    id: '11111111-1111-1111-1111-111111111111',
+    name: 'Albergue Demo Norte',
+    slug: 'albergue-demo-norte',
+    address: 'Calle Demo 1, Pamplona',
+    comunidad: 'Navarra',
+    capacity: 20,
+    rating: 4.5,
+    basePrice: 15,
+  },
+  {
+    id: '22222222-2222-2222-2222-222222222222',
+    name: 'Albergue Demo Rioja',
+    slug: 'albergue-demo-rioja',
+    address: 'Calle Demo 2, Logroño',
+    comunidad: 'La Rioja',
+    capacity: 20,
+    rating: 4.3,
+    basePrice: 16,
+  },
+  {
+    id: '33333333-3333-3333-3333-333333333333',
+    name: 'Albergue Demo Galicia',
+    slug: 'albergue-demo-galicia',
+    address: 'Calle Demo 3, Santiago',
+    comunidad: 'Galicia',
+    capacity: 16,
+    rating: 4.7,
+    basePrice: 14,
+  },
+];
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
@@ -56,7 +87,7 @@ export default function Directorio() {
 
   const filtered = useMemo(
     () =>
-      hostels.filter((h) => {
+      HOSTELS.filter((h) => {
         const term = search.toLowerCase();
         const matchesSearch = !term || h.name.toLowerCase().includes(term) || h.address.toLowerCase().includes(term);
         const matchesComunidad = !comunidad || h.comunidad === comunidad;

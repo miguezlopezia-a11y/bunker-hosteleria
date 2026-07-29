@@ -37,7 +37,7 @@ function ServiceFormModal({ isOpen, onClose, service }) {
 
   const handleChange = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
     if (!form.name) newErrors.name = 'Campo obligatorio';
@@ -48,17 +48,18 @@ function ServiceFormModal({ isOpen, onClose, service }) {
     if (Object.keys(newErrors).length > 0) return;
 
     setSaving(true);
-    setTimeout(() => {
-      if (isEditing) {
-        updateMarketplaceService(service.id, form);
-        showToast('Servicio actualizado');
-      } else {
-        addMarketplaceService(form);
-        showToast('Servicio añadido');
-      }
-      setSaving(false);
-      onClose();
-    }, 600);
+    const { error } = isEditing
+      ? await updateMarketplaceService(service.id, form)
+      : await addMarketplaceService(form);
+    setSaving(false);
+
+    if (error) {
+      showToast(error, 'error');
+      return;
+    }
+
+    showToast(isEditing ? 'Servicio actualizado' : 'Servicio añadido');
+    onClose();
   };
 
   return (

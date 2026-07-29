@@ -22,6 +22,12 @@ export function addDays(date, days) {
   return d;
 }
 
+export function subDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() - days);
+  return d;
+}
+
 export function isSameDay(a, b) {
   if (!a || !b) return false;
   const da = new Date(a);

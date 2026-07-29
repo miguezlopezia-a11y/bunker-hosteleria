@@ -1,53 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
+import { useToast } from '../context/ToastContext';
 import ManagerLayout from '../components/ManagerLayout';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { formatRelativeDateTime, formatEuro } from '../utils/format';
+import { formatRelativeDateTime, addDays, isSameDay } from '../utils/format';
 
-const TYPE_LABELS = { precio: 'Precio', ocupacion: 'Ocupación', aviso: 'Aviso' };
-
-function getMockAnswer(question, ctx) {
-  const q = question.toLowerCase();
-  if (q.includes('cama')) {
-    const free = ctx.beds.filter((b) => b.status === 'free').length;
-    return `Actualmente tienes ${free} camas libres.`;
-  }
-  if (q.includes('ocupa')) {
-    return 'La ocupación media esta semana es del 71%.';
-  }
-  if (q.includes('pago') || q.includes('pendiente')) {
-    const pending = ctx.guests.find((g) => g.paymentStatus === 'pendiente');
-    return pending
-      ? `${pending.name} tiene un pago pendiente de ${formatEuro(pending.price)}.`
-      : 'No hay pagos pendientes en este momento.';
-  }
-  if (q.includes('precio')) {
-    return 'Recomiendo mantener el precio entre € 15 y € 22 según demanda de la zona.';
-  }
-  return 'Gracias por tu pregunta, estoy analizando los datos del albergue...';
-}
+const TYPE_LABELS = { precio: 'Precio', ocupacion: 'Ocupación', aviso: 'Aviso', alerta: 'Alerta', info: 'Info', sugerencia: 'Sugerencia' };
 
 function MaiaChat() {
-  const ctx = useApp();
+  const { maiaChatAnswer } = useApp();
+  const { showToast } = useToast();
   const [question, setQuestion] = useState('');
   const [exchanges, setExchanges] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!question.trim()) return;
     const q = question;
     setQuestion('');
     setLoading(true);
-    setTimeout(() => {
-      const answer = getMockAnswer(q, ctx);
-      setExchanges((prev) => [...prev, { question: q, answer }].slice(-3));
-      setLoading(false);
-    }, 1000);
+
+    const { answer, error } = await maiaChatAnswer(q);
+    setLoading(false);
+
+    if (error) {
+      showToast(error, 'error');
+      return;
+    }
+
+    setExchanges((prev) => [...prev, { question: q, answer }].slice(-5));
   };
 
   return (
@@ -59,7 +45,7 @@ function MaiaChat() {
         {exchanges.length === 0 && !loading ? (
           <p className="text-xs text-slate-400 mb-2">Ejemplo: ¿Cuántas camas tengo libres mañana?</p>
         ) : (
-          <div className="flex flex-col gap-1.5 mb-2 max-h-32 overflow-y-auto" data-testid="maia-chat-exchanges">
+          <div className="flex flex-col gap-1.5 mb-2 max-h-40 overflow-y-auto" data-testid="maia-chat-exchanges">
             {exchanges.map((ex, idx) => (
               <div key={idx} className="text-xs">
                 <p className="text-slate-900 font-medium">Tú: {ex.question}</p>
@@ -82,7 +68,7 @@ function MaiaChat() {
             className="flex-1"
             data-testid="maia-chat-input"
           />
-          <Button type="submit" data-testid="maia-chat-send-button">
+          <Button type="submit" disabled={loading} data-testid="maia-chat-send-button">
             Enviar
           </Button>
         </form>
@@ -92,42 +78,91 @@ function MaiaChat() {
 }
 
 export default function MaiaPanel() {
-  const { notifications, markNotificationRead } = useApp();
-  const sorted = [...notifications].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const { notifications, markNotificationRead, maiaAnalyze } = useApp();
+  const { showToast } = useToast();
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const today = new Date();
+  const tomorrow = addDays(today, 1);
+
+  const { todayNotifications, earlierNotifications } = useMemo(() => {
+    const sorted = [...notifications].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+    return {
+      todayNotifications: sorted.filter((n) => isSameDay(n.timestamp, today)),
+      earlierNotifications: sorted.filter((n) => !isSameDay(n.timestamp, today) && isSameDay(n.timestamp, tomorrow)),
+    };
+  }, [notifications, today, tomorrow]);
+
+  const handleAnalyze = async () => {
+    setAnalyzing(true);
+    const { alerts, error } = await maiaAnalyze();
+    setAnalyzing(false);
+    if (error) {
+      showToast(error, 'error');
+      return;
+    }
+    if (alerts.length === 0) {
+      showToast('MaiA no ha detectado novedades');
+    } else {
+      showToast(`${alerts.length} alerta${alerts.length > 1 ? 's' : ''} generada${alerts.length > 1 ? 's' : ''}`);
+    }
+  };
+
+  const renderList = (list) => {
+    if (list.length === 0) {
+      return (
+        <p className="text-center text-slate-400 py-6" data-testid="maia-empty-state">
+          No hay notificaciones nuevas.
+        </p>
+      );
+    }
+    return (
+      <div className="flex flex-col gap-2" data-testid="maia-notifications-list">
+        {list.map((n) => (
+          <Card key={n.id} className={n.read ? 'opacity-60' : ''} data-testid={`maia-notification-${n.id}`}>
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-2">
+                <Badge variant={n.type}>{TYPE_LABELS[n.type] || n.type}</Badge>
+                <span className="text-xs text-slate-400">{formatRelativeDateTime(n.timestamp)}</span>
+              </div>
+              {!n.read && (
+                <button
+                  type="button"
+                  onClick={() => markNotificationRead(n.id)}
+                  data-testid={`maia-mark-read-${n.id}`}
+                  className="text-blue-600 text-xs font-medium hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1"
+                >
+                  Marcar leído
+                </button>
+              )}
+            </div>
+            <p className="text-sm text-slate-900">{n.message}</p>
+          </Card>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <ManagerLayout>
       <div className="p-4 md:p-8 max-w-3xl mx-auto pb-40 md:pb-24" data-testid="maia-page">
-        <h1 className="text-2xl font-bold text-slate-900 mb-4">MaiA — Asistente del albergue</h1>
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <h1 className="text-2xl font-bold text-slate-900">MaiA — Asistente del albergue</h1>
+          <Button onClick={handleAnalyze} loading={analyzing} data-testid="maia-analyze-button">
+            Analizar ahora
+          </Button>
+        </div>
 
-        {sorted.length === 0 ? (
-          <p className="text-center text-slate-400 py-10" data-testid="maia-empty-state">
-            No hay notificaciones nuevas.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2" data-testid="maia-notifications-list">
-            {sorted.map((n) => (
-              <Card key={n.id} className={n.read ? 'opacity-60' : ''} data-testid={`maia-notification-${n.id}`}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={n.type}>{TYPE_LABELS[n.type]}</Badge>
-                    <span className="text-xs text-slate-400">{formatRelativeDateTime(n.timestamp)}</span>
-                  </div>
-                  {!n.read && (
-                    <button
-                      type="button"
-                      onClick={() => markNotificationRead(n.id)}
-                      data-testid={`maia-mark-read-${n.id}`}
-                      className="text-blue-600 text-xs font-medium hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1"
-                    >
-                      Marcar leído
-                    </button>
-                  )}
-                </div>
-                <p className="text-sm text-slate-900">{n.message}</p>
-              </Card>
-            ))}
-          </div>
+        <h2 className="text-base font-semibold text-slate-900 mb-3">Hoy</h2>
+        {renderList(todayNotifications)}
+
+        {earlierNotifications.length > 0 && (
+          <>
+            <h2 className="text-base font-semibold text-slate-900 mt-6 mb-3">Ayer</h2>
+            {renderList(earlierNotifications)}
+          </>
         )}
       </div>
       <MaiaChat />

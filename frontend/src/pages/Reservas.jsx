@@ -2,7 +2,11 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
-import { channels } from '../data/channels';
+const CHANNELS = [
+  { id: 'bookingcom', name: 'Booking.com' },
+  { id: 'airbnb', name: 'Airbnb' },
+  { id: 'hostelworld', name: 'Hostelworld' },
+];
 import ManagerLayout from '../components/ManagerLayout';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
@@ -26,6 +30,7 @@ function NewReservationModal({ isOpen, onClose }) {
   const { showToast } = useToast();
   const [form, setForm] = useState({
     guestName: '',
+    email: '',
     checkin: '',
     checkout: '',
     bed: '',
@@ -38,7 +43,7 @@ function NewReservationModal({ isOpen, onClose }) {
 
   const handleChange = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
     if (!form.guestName) newErrors.guestName = 'Campo obligatorio';
@@ -52,8 +57,9 @@ function NewReservationModal({ isOpen, onClose }) {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    addReservation({
+    const { error } = await addReservation({
       guestName: form.guestName,
+      email: form.email,
       checkin: new Date(form.checkin),
       checkout: new Date(form.checkout),
       bed: form.bed,
@@ -62,8 +68,14 @@ function NewReservationModal({ isOpen, onClose }) {
       origin: form.origin,
       nationality: '',
     });
+
+    if (error) {
+      showToast(error, 'error');
+      return;
+    }
+
     showToast('Reserva creada correctamente');
-    setForm({ guestName: '', checkin: '', checkout: '', bed: '', price: '', origin: 'Directo' });
+    setForm({ guestName: '', email: '', checkin: '', checkout: '', bed: '', price: '', origin: 'Directo' });
     setErrors({});
     onClose();
   };
@@ -78,6 +90,14 @@ function NewReservationModal({ isOpen, onClose }) {
           onChange={handleChange('guestName')}
           error={errors.guestName}
           data-testid="new-reservation-name-input"
+        />
+        <Input
+          label="Email del huésped"
+          type="email"
+          value={form.email}
+          onChange={handleChange('email')}
+          error={errors.email}
+          data-testid="new-reservation-email-input"
         />
         <div className="grid grid-cols-2 gap-3">
           <Input
@@ -135,7 +155,7 @@ function NewReservationModal({ isOpen, onClose }) {
   );
 }
 
-function ReservationsList({ reservations, navigate }) {
+function ReservationsList({ reservations, navigate, onCancel }) {
   if (reservations.length === 0) {
     return (
       <p className="text-center text-slate-400 py-10" data-testid="reservations-empty-state">
@@ -160,9 +180,14 @@ function ReservationsList({ reservations, navigate }) {
             <Badge variant={r.status}>{r.status === 'pendiente' ? 'Pendiente' : 'Check-in hecho'}</Badge>
             <p className="text-sm font-semibold text-slate-900 w-16 text-right">{formatEuro(r.price)}</p>
             {r.status === 'pendiente' ? (
-              <Button variant="primary" onClick={() => navigate(`/checkin/${r.id}`)} data-testid={`reservation-checkin-button-${r.id}`}>
-                Check-in
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="primary" onClick={() => navigate(`/checkin/${r.id}`)} data-testid={`reservation-checkin-button-${r.id}`}>
+                  Check-in
+                </Button>
+                <Button variant="danger" onClick={() => onCancel(r.id)} data-testid={`reservation-cancel-button-${r.id}`}>
+                  Cancelar
+                </Button>
+              </div>
             ) : (
               <Button variant="secondary" onClick={() => navigate('/huespedes')} data-testid={`reservation-ver-button-${r.id}`}>
                 Ver
@@ -362,7 +387,7 @@ function ChannelManagerTab() {
           </Button>
         </div>
         <div className="flex flex-col gap-2">
-          {channels.map((ch) => {
+          {CHANNELS.map((ch) => {
             const connected = integrations[ch.id];
             const mins = minutesAgo(channelSync[ch.id]);
             const availability = modoDirecto ? 0 : freeBeds;
@@ -434,11 +459,22 @@ const PATH_TO_TAB = {
 };
 
 export default function Reservas() {
-  const { reservations, beds, guests } = useApp();
+  const { reservations, beds, guests, cancelReservation } = useApp();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const activeTab = PATH_TO_TAB[location.pathname] || 'lista';
   const [modalOpen, setModalOpen] = useState(false);
+
+  const handleCancel = async (reservationId) => {
+    if (!window.confirm('¿Cancelar esta reserva?')) return;
+    const { error } = await cancelReservation(reservationId);
+    if (error) {
+      showToast(error, 'error');
+      return;
+    }
+    showToast('Reserva cancelada');
+  };
 
   const handleTabChange = (tab) => {
     if (TAB_PATHS[tab]) navigate(TAB_PATHS[tab]);
@@ -466,7 +502,7 @@ export default function Reservas() {
         />
 
         <div className="mt-4">
-          {activeTab === 'lista' && <ReservationsList reservations={reservations} navigate={navigate} />}
+          {activeTab === 'lista' && <ReservationsList reservations={reservations} navigate={navigate} onCancel={handleCancel} />}
           {activeTab === 'calendario' && <CalendarTab beds={beds} guests={guests} reservations={reservations} />}
           {activeTab === 'channel-manager' && <ChannelManagerTab />}
         </div>

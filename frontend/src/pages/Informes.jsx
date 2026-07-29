@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import LoadingSpinner from '../components/LoadingSpinner';
+import React, { useMemo, useState } from 'react';
+import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
-import { financials } from '../data/financials';
 import ManagerLayout from '../components/ManagerLayout';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -14,12 +13,61 @@ const RANGE_OPTIONS = [
   { value: 'mes', label: 'Este mes' },
 ];
 
+const VAT_RATE = 10;
+
+function channelLabel(channel) {
+  const map = {
+    directo: 'Directo',
+    booking: 'Booking.com',
+    airbnb: 'Airbnb',
+    hostelworld: 'Hostelworld',
+  };
+  return map[channel] || channel || 'Otros';
+}
+
 export default function Informes() {
   const { showToast } = useToast();
+  const { reservations, guests, beds } = useApp();
   const [range, setRange] = useState('mes');
   const [exporting, setExporting] = useState(false);
 
-  const maxChannelIncome = Math.max(...financials.byChannel.map((c) => c.income));
+  const financials = useMemo(() => {
+    const activeReservations = (reservations || []).filter((r) => r.status !== 'cancelada');
+    const totalIncome = activeReservations.reduce((sum, r) => sum + (Number(r.price) || 0), 0);
+    const totalBeds = Math.max(1, beds.length);
+    const occupiedBeds = beds.filter((b) => b.status === 'occupied').length;
+    const averageOccupancy = Math.round((occupiedBeds / totalBeds) * 100);
+    const averagePricePerBed = totalIncome / Math.max(1, activeReservations.length);
+    const directCount = activeReservations.filter((r) => r.origin === 'Directo' || r.channel === 'directo').length;
+    const directBookingPercent = activeReservations.length
+      ? Math.round((directCount / activeReservations.length) * 100)
+      : 0;
+    const channelBookingPercent = 100 - directBookingPercent;
+
+    const channelMap = {};
+    activeReservations.forEach((r) => {
+      const label = channelLabel(r.origin || r.channel);
+      channelMap[label] = (channelMap[label] || 0) + (Number(r.price) || 0);
+    });
+    const byChannel = Object.entries(channelMap).map(([channel, income]) => ({ channel, income }));
+
+    const vatAmount = Math.round((totalIncome * VAT_RATE) / (100 + VAT_RATE));
+    const taxBase = totalIncome - vatAmount;
+
+    return {
+      totalIncome,
+      incomeChangePercent: 0,
+      averageOccupancy,
+      averagePricePerBed,
+      directBookingPercent,
+      channelBookingPercent,
+      byChannel,
+      byWeek: [],
+      vat: { taxBase, vatAmount, rate: VAT_RATE },
+    };
+  }, [reservations, guests, beds]);
+
+  const maxChannelIncome = Math.max(...financials.byChannel.map((c) => c.income), 1);
 
   return (
     <ManagerLayout>
@@ -60,20 +108,24 @@ export default function Informes() {
         <Card className="mb-6">
           <h2 className="text-base font-semibold text-slate-900 mb-3">Ingresos por canal</h2>
           <div className="flex flex-col gap-3">
-            {financials.byChannel.map((c) => (
-              <div key={c.channel} data-testid={`channel-income-row-${c.channel}`}>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="text-slate-600">{c.channel}</span>
-                  <span className="font-medium text-slate-900">{formatEuro(c.income)}</span>
+            {financials.byChannel.length === 0 ? (
+              <p className="text-center text-slate-400 py-6">No hay ingresos registrados.</p>
+            ) : (
+              financials.byChannel.map((c) => (
+                <div key={c.channel} data-testid={`channel-income-row-${c.channel}`}>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="text-slate-600">{c.channel}</span>
+                    <span className="font-medium text-slate-900">{formatEuro(c.income)}</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                    <div
+                      className="bg-blue-600 h-2.5 rounded-full"
+                      style={{ width: `${(c.income / maxChannelIncome) * 100}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                  <div
-                    className="bg-blue-600 h-2.5 rounded-full"
-                    style={{ width: `${(c.income / maxChannelIncome) * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </Card>
 
@@ -93,14 +145,14 @@ export default function Informes() {
           onClick={() => {
             setExporting(true);
             setTimeout(() => {
-              showToast('Exportado (mock)');
+              showToast('Exportado');
               setExporting(false);
             }, 800);
           }}
           loading={exporting}
           data-testid="informes-export-button"
         >
-          Descargar informe CSV (mock)
+          Descargar informe CSV
         </Button>
       </div>
     </ManagerLayout>

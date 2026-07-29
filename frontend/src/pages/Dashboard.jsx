@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
-import { camino } from '../data/camino';
+const CAMINO = {
+  stage: { from: 'Pamplona', to: 'Logroño', km: 62, difficulty: 'Dificultad media' },
+  weatherToday: { temp: 18, condition: 'Parcialmente nublado', wind: 12 },
+  weatherTomorrow: { temp: 14, condition: 'Lluvia probable', tip: 'Llevar impermeable' },
+};
 import ManagerLayout from '../components/ManagerLayout';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
@@ -83,7 +87,8 @@ export default function Dashboard() {
   const disponibles = beds.filter((b) => b.status === 'free');
   const occupiedCount = beds.filter((b) => b.status === 'occupied').length;
 
-  const alertasMaia = notifications.filter((n) => n.alerta);
+  const unreadNotifications = notifications.filter((n) => !n.read);
+  const alertaMasUrgente = unreadNotifications.find((n) => n.type === 'alerta') || unreadNotifications[0];
   const pagoPendiente = guests.find((g) => g.paymentStatus === 'pendiente');
 
   return (
@@ -104,16 +109,16 @@ export default function Dashboard() {
           </button>
         )}
 
-        {(alertasMaia.length > 0 || pagoPendiente) && (
+        {(alertaMasUrgente || pagoPendiente) && (
           <div className="flex flex-col gap-2 mb-5">
-            {alertasMaia.length > 0 && (
+            {alertaMasUrgente && (
               <button
                 type="button"
                 onClick={() => navigate('/maia')}
                 data-testid="alert-maia"
                 className="text-left bg-red-50 border border-red-200 text-red-600 rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-red-100 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-red-500"
               >
-                {alertasMaia.length} alertas de MaiA — Ver panel →
+                <span className="font-semibold">MaiA:</span> {alertaMasUrgente.message} — Ver panel →
               </button>
             )}
             {pagoPendiente && (
@@ -180,15 +185,15 @@ export default function Dashboard() {
             <div className="mt-3 flex flex-col gap-2 text-sm">
               <p className="text-slate-600">
                 <span className="font-medium text-slate-900">Etapa actual: </span>
-                {camino.stage.from} → {camino.stage.to} · {camino.stage.km} km · {camino.stage.difficulty}
+                {CAMINO.stage.from} → {CAMINO.stage.to} · {CAMINO.stage.km} km · {CAMINO.stage.difficulty}
               </p>
               <p className="text-slate-600">
                 <span className="font-medium text-slate-900">Tiempo hoy: </span>
-                {camino.weatherToday.temp}°C · {camino.weatherToday.condition} · Viento {camino.weatherToday.wind} km/h
+                {CAMINO.weatherToday.temp}°C · {CAMINO.weatherToday.condition} · Viento {CAMINO.weatherToday.wind} km/h
               </p>
               <p className="text-slate-600">
                 <span className="font-medium text-slate-900">Tiempo mañana: </span>
-                {camino.weatherTomorrow.temp}°C · {camino.weatherTomorrow.condition} · {camino.weatherTomorrow.tip}
+                {CAMINO.weatherTomorrow.temp}°C · {CAMINO.weatherTomorrow.condition} · {CAMINO.weatherTomorrow.tip}
               </p>
             </div>
           )}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
-import { communicationHistory } from '../data/communications';
+const communicationHistory = [];
 import ManagerLayout from '../components/ManagerLayout';
 import Card from '../components/Card';
 import Badge from '../components/Badge';

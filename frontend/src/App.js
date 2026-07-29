@@ -20,6 +20,7 @@ import EmployeePortal from './pages/employee/EmployeePlaceholder';
 import EmployeeHistorial from './pages/employee/EmployeeHistorial';
 import Web from './pages/public/Web';
 import Directorio from './pages/public/Directorio';
+import Survey from './pages/Survey';
 import NotFound from './pages/NotFound';
 
 const MANAGER_ROLES = ['Director', 'Recepción'];
@@ -163,6 +164,8 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            <Route path="/survey" element={<Survey />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

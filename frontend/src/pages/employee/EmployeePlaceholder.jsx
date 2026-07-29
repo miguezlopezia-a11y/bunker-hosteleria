@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
-import { rooms as roomsData } from '../../data/rooms';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
@@ -17,24 +16,27 @@ function FicharCard({ employee }) {
 
   if (!employee) return null;
 
-  const handleTap = () => {
+  const handleTap = async () => {
     setVerifying(true);
     setResult(null);
-    setTimeout(() => {
-      if (employee.clockedIn) {
-        clockOut(employee.id);
-        setResult({ ok: true, text: `Salida registrada · WiFi albergue verificado` });
-      } else {
-        const outOfZone = Math.random() < 0.2;
-        if (outOfZone) {
-          setResult({ ok: false, text: 'Fuera de zona · Acércate al albergue para fichar' });
-        } else {
-          clockIn(employee.id);
-          setResult({ ok: true, text: `Entrada registrada · WiFi albergue verificado` });
-        }
-      }
-      setVerifying(false);
-    }, 900);
+
+    const { error, verificado } = employee.clockedIn
+      ? await clockOut(employee.id)
+      : await clockIn(employee.id);
+
+    setVerifying(false);
+
+    if (error) {
+      setResult({ ok: false, text: error });
+      return;
+    }
+
+    const verificationText = verificado ? 'GPS verificado' : 'Fichaje manual';
+    if (employee.clockedIn) {
+      setResult({ ok: true, text: `Salida registrada · ${verificationText}` });
+    } else {
+      setResult({ ok: true, text: `Entrada registrada · ${verificationText}` });
+    }
   };
 
   return (
@@ -78,13 +80,14 @@ function FicharCard({ employee }) {
 }
 
 function TaskCard({ task }) {
-  const { markTaskDone } = useApp();
+  const { rooms, markTaskDone } = useApp();
   const [syncing, setSyncing] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
-  const room = roomsData.find((r) => r.id === task.roomId);
+  const room = rooms.find((r) => r.id === task.roomId);
 
-  const handleMarkDone = () => {
-    markTaskDone(task.id);
+  const handleMarkDone = async () => {
+    const { error } = await markTaskDone(task.id);
+    if (error) return;
     setJustCompleted(true);
     setSyncing(true);
     setTimeout(() => setSyncing(false), 1000);

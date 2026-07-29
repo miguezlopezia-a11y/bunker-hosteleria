@@ -19,11 +19,18 @@ function AssignTaskModal({ isOpen, onClose, rooms, employees }) {
   const [roomId, setRoomId] = useState('');
   const [employeeName, setEmployeeName] = useState('');
   const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!roomId || !employeeName) return;
-    assignTask({ roomId: Number(roomId), employeeName, notes });
+    setSaving(true);
+    const { error } = await assignTask({ roomId: Number(roomId), employeeName, notes });
+    setSaving(false);
+    if (error) {
+      showToast(error, 'error');
+      return;
+    }
     showToast('Tarea asignada');
     setRoomId('');
     setEmployeeName('');
@@ -58,7 +65,7 @@ function AssignTaskModal({ isOpen, onClose, rooms, employees }) {
           onChange={(e) => setNotes(e.target.value)}
           data-testid="assign-task-notes-input"
         />
-        <Button type="submit" fullWidth data-testid="assign-task-submit-button">
+        <Button type="submit" fullWidth loading={saving} data-testid="assign-task-submit-button">
           Asignar
         </Button>
       </form>

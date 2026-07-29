@@ -9,6 +9,7 @@ import Button from '../components/Button';
 import Modal from '../components/Modal';
 import Input from '../components/Input';
 import Select from '../components/Select';
+import Toggle from '../components/Toggle';
 
 const ROLE_OPTIONS = [
   { value: 'Director', label: 'Director' },
@@ -26,19 +27,30 @@ const INTEGRATION_LABELS = {
 function AddEmployeeModal({ isOpen, onClose }) {
   const { addEmployee } = useApp();
   const { showToast } = useToast();
-  const [form, setForm] = useState({ name: '', role: 'Empleado', pin: '' });
+  const [form, setForm] = useState({ email: '', password: '', nombre: '', rol: 'Empleado' });
   const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
-    if (!form.name) newErrors.name = 'Campo obligatorio';
-    if (!form.pin || form.pin.length !== 4) newErrors.pin = 'Campo obligatorio';
+    if (!form.nombre) newErrors.nombre = 'Campo obligatorio';
+    if (!form.email) newErrors.email = 'Campo obligatorio';
+    if (!form.password || form.password.length < 6) newErrors.password = 'Mínimo 6 caracteres';
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
-    addEmployee(form);
+
+    setSubmitting(true);
+    const { error } = await addEmployee(form);
+    setSubmitting(false);
+
+    if (error) {
+      showToast(error, 'error');
+      return;
+    }
+
     showToast('Empleado añadido');
-    setForm({ name: '', role: 'Empleado', pin: '' });
+    setForm({ email: '', password: '', nombre: '', rol: 'Empleado' });
     onClose();
   };
 
@@ -48,29 +60,37 @@ function AddEmployeeModal({ isOpen, onClose }) {
         <Input
           label="Nombre"
           required
-          value={form.name}
-          onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-          error={errors.name}
+          value={form.nombre}
+          onChange={(e) => setForm((prev) => ({ ...prev, nombre: e.target.value }))}
+          error={errors.nombre}
           data-testid="add-employee-name-input"
+        />
+        <Input
+          label="Email"
+          required
+          type="email"
+          value={form.email}
+          onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+          error={errors.email}
+          data-testid="add-employee-email-input"
+        />
+        <Input
+          label="Contraseña"
+          required
+          type="password"
+          value={form.password}
+          onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
+          error={errors.password}
+          data-testid="add-employee-password-input"
         />
         <Select
           label="Rol"
-          value={form.role}
-          onChange={(e) => setForm((prev) => ({ ...prev, role: e.target.value }))}
+          value={form.rol}
+          onChange={(e) => setForm((prev) => ({ ...prev, rol: e.target.value }))}
           options={ROLE_OPTIONS}
           data-testid="add-employee-role-select"
         />
-        <Input
-          label="PIN de 4 dígitos"
-          required
-          type="tel"
-          maxLength={4}
-          value={form.pin}
-          onChange={(e) => setForm((prev) => ({ ...prev, pin: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
-          error={errors.pin}
-          data-testid="add-employee-pin-input"
-        />
-        <Button type="submit" fullWidth data-testid="add-employee-submit-button">
+        <Button type="submit" fullWidth loading={submitting} data-testid="add-employee-submit-button">
           Añadir
         </Button>
       </form>
@@ -79,7 +99,7 @@ function AddEmployeeModal({ isOpen, onClose }) {
 }
 
 export default function Configuracion() {
-  const { session, employees, integrations, disconnectIntegration, updateHostelInfo, logout } = useApp();
+  const { session, employees, integrations, modoDirecto, disconnectIntegration, updateHostelInfo, logout } = useApp();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const isDirector = session?.role === 'Director';
@@ -94,9 +114,9 @@ export default function Configuracion() {
   const [radius, setRadius] = useState(150);
   const [addEmployeeOpen, setAddEmployeeOpen] = useState(false);
 
-  const handleSaveHostel = (e) => {
+  const handleSaveHostel = async (e) => {
     e.preventDefault();
-    updateHostelInfo(hostelForm);
+    await updateHostelInfo(hostelForm);
     showToast('Datos del albergue actualizados');
   };
 
@@ -200,6 +220,21 @@ export default function Configuracion() {
               </div>
             ))}
           </div>
+        </Card>
+
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-slate-900">Modo Directo</h2>
+            <Toggle
+              checked={modoDirecto}
+              onChange={(value) => updateHostelInfo({ modoDirecto: value })}
+              testId="configuracion-modo-directo-toggle"
+              label="Modo Directo"
+            />
+          </div>
+          <p className="text-sm text-slate-600">
+            Cuando está activo, tu albergue solo acepta reservas directas y aparece como completo en canales externos.
+          </p>
         </Card>
 
         <Card>
