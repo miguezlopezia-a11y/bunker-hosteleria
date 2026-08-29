@@ -86,6 +86,12 @@ jest.mock('./lib/supabase', () => {
         if (fn === 'get_hostal_by_slug') {
           return { single: () => makeThenable({ data: { name: 'Albergue Demo Norte', base_price: 15, modo_directo: false }, error: null }) };
         }
+        if (fn === 'list_public_hostales') {
+          return makeThenable({
+            data: [{ name: 'Albergue Demo Norte', slug: 'albergue-demo-norte', address: 'Calle Demo 1', base_price: 15 }],
+            error: null,
+          });
+        }
         return makeThenable({ data: [], error: null });
       },
     },
@@ -167,7 +173,7 @@ test('Marketplace lista servicios y abre el modal', async () => {
   expect(screen.getByTestId('service-form-modal')).toBeInTheDocument();
 });
 
-test('Directorio muestra albergues', () => {
+test('Directorio muestra albergues', async () => {
   renderWithProviders(
     <Routes>
       <Route path="/directorio" element={<Directorio />} />
@@ -176,6 +182,10 @@ test('Directorio muestra albergues', () => {
   );
 
   expect(screen.getByTestId('directorio-page')).toBeInTheDocument();
+  // Los albergues llegan de publicService.listPublicHostales() (asíncrono;
+  // en el mock de supabase, la RPC list_public_hostales devuelve el fixture).
+  await waitFor(() =>
+    expect(screen.getByTestId('directorio-hostel-card-albergue-demo-norte')).toBeInTheDocument()
+  );
   expect(screen.getByTestId('directorio-hostel-list')).toBeInTheDocument();
-  expect(screen.getByTestId('directorio-hostel-card-albergue-demo-norte')).toBeInTheDocument();
 });

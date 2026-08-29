@@ -1,6 +1,8 @@
 import { supabase } from '../lib/supabase';
 
 export const publicService = {
+  listPublicHostales: () => supabase.rpc('list_public_hostales'),
+
   getHostalBySlug: (slug) => supabase.rpc('get_hostal_by_slug', { p_slug: slug }).single(),
 
   getBedsByHostalSlug: (slug) => supabase.rpc('get_beds_by_hostal_slug', { p_slug: slug }),

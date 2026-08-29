@@ -1,74 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-const HOSTELS = [
-  {
-    id: '11111111-1111-1111-1111-111111111111',
-    name: 'Albergue Demo Norte',
-    slug: 'albergue-demo-norte',
-    address: 'Calle Demo 1, Pamplona',
-    comunidad: 'Navarra',
-    capacity: 20,
-    rating: 4.5,
-    basePrice: 15,
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222222',
-    name: 'Albergue Demo Rioja',
-    slug: 'albergue-demo-rioja',
-    address: 'Calle Demo 2, Logroño',
-    comunidad: 'La Rioja',
-    capacity: 20,
-    rating: 4.3,
-    basePrice: 16,
-  },
-  {
-    id: '33333333-3333-3333-3333-333333333333',
-    name: 'Albergue Demo Galicia',
-    slug: 'albergue-demo-galicia',
-    address: 'Calle Demo 3, Santiago',
-    comunidad: 'Galicia',
-    capacity: 16,
-    rating: 4.7,
-    basePrice: 14,
-  },
-];
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
-import Select from '../../components/Select';
 import { formatEuro } from '../../utils/format';
-
-const COMUNIDAD_OPTIONS = [
-  { value: '', label: 'Todas' },
-  { value: 'Navarra', label: 'Navarra' },
-  { value: 'La Rioja', label: 'La Rioja' },
-  { value: 'Castilla y León', label: 'Castilla y León' },
-  { value: 'Galicia', label: 'Galicia' },
-];
-
-const CAPACIDAD_OPTIONS = [
-  { value: '', label: 'Todas' },
-  { value: 'hasta20', label: 'Hasta 20 plazas' },
-  { value: 'hasta50', label: 'Hasta 50 plazas' },
-  { value: 'mas50', label: 'Más de 50 plazas' },
-];
+import { publicService } from '../../services/publicService';
 
 const DEFAULT_TITLE = 'BunkerHostal';
 const DEFAULT_DESCRIPTION = 'BunkerHostal — Gestión y reservas directas para albergues del Camino de Santiago';
 
-function matchesCapacidad(capacity, filter) {
-  if (!filter) return true;
-  if (filter === 'hasta20') return capacity <= 20;
-  if (filter === 'hasta50') return capacity <= 50;
-  if (filter === 'mas50') return capacity > 50;
-  return true;
-}
-
 export default function Directorio() {
   const [search, setSearch] = useState('');
-  const [comunidad, setComunidad] = useState('');
-  const [capacidad, setCapacidad] = useState('');
+  const [hostales, setHostales] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     document.title = 'Albergues del Camino de Santiago — Red BunkerHostal';
@@ -85,15 +31,33 @@ export default function Directorio() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    publicService.listPublicHostales().then(({ data, error: rpcError }) => {
+      if (cancelled) return;
+      if (rpcError) {
+        setError('No se pudo cargar el directorio de albergues.');
+      } else {
+        setHostales(data || []);
+      }
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const filtered = useMemo(
     () =>
-      HOSTELS.filter((h) => {
+      hostales.filter((h) => {
         const term = search.toLowerCase();
-        const matchesSearch = !term || h.name.toLowerCase().includes(term) || h.address.toLowerCase().includes(term);
-        const matchesComunidad = !comunidad || h.comunidad === comunidad;
-        return matchesSearch && matchesComunidad && matchesCapacidad(h.capacity, capacidad);
+        return (
+          !term ||
+          h.name.toLowerCase().includes(term) ||
+          (h.address || '').toLowerCase().includes(term)
+        );
       }),
-    [search, comunidad, capacidad]
+    [hostales, search]
   );
 
   return (
@@ -107,48 +71,38 @@ export default function Directorio() {
         </p>
 
         <Card className="mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Input
-              label="Buscar por etapa o ciudad"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Pamplona, Logroño..."
-              data-testid="directorio-search-input"
-            />
-            <Select
-              label="Comunidad"
-              value={comunidad}
-              onChange={(e) => setComunidad(e.target.value)}
-              options={COMUNIDAD_OPTIONS}
-              data-testid="directorio-comunidad-select"
-            />
-            <Select
-              label="Capacidad"
-              value={capacidad}
-              onChange={(e) => setCapacidad(e.target.value)}
-              options={CAPACIDAD_OPTIONS}
-              data-testid="directorio-capacidad-select"
-            />
-          </div>
+          <Input
+            label="Buscar por etapa o ciudad"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Pamplona, Logroño..."
+            data-testid="directorio-search-input"
+          />
         </Card>
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <p className="text-center text-slate-400 py-10" data-testid="directorio-loading">
+            Cargando albergues...
+          </p>
+        ) : error ? (
+          <p className="text-center text-red-500 py-10" data-testid="directorio-error">
+            {error}
+          </p>
+        ) : filtered.length === 0 ? (
           <p className="text-center text-slate-400 py-10" data-testid="directorio-empty-state">
             No se encontraron albergues para esta búsqueda.
           </p>
         ) : (
           <div className="flex flex-col gap-3 mb-8" data-testid="directorio-hostel-list">
             {filtered.map((h) => (
-              <Card key={h.id} className="flex items-center justify-between gap-4 flex-wrap" data-testid={`directorio-hostel-card-${h.slug}`}>
+              <Card key={h.slug} className="flex items-center justify-between gap-4 flex-wrap" data-testid={`directorio-hostel-card-${h.slug}`}>
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <p className="text-sm font-semibold text-slate-900">{h.name}</p>
                     <Badge variant="pagado">Verificado BunkerHostal</Badge>
                   </div>
-                  <p className="text-xs text-slate-400">
-                    {h.address} · {h.capacity} plazas · {h.rating.toFixed(1)}★
-                  </p>
-                  <p className="text-sm text-slate-600 mt-1">Desde {formatEuro(h.basePrice)}/noche</p>
+                  <p className="text-xs text-slate-400">{h.address}</p>
+                  <p className="text-sm text-slate-600 mt-1">Desde {formatEuro(h.base_price)}/noche</p>
                 </div>
                 <Link to={`/web?hostel=${h.slug}`} data-testid={`directorio-book-button-${h.slug}`}>
                   <Button>Reservar directamente</Button>

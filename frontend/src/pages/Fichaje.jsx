@@ -9,55 +9,15 @@ import Tabs from '../components/Tabs';
 import Input from '../components/Input';
 import StatusDot from '../components/StatusDot';
 import ProgressBar from '../components/ProgressBar';
-import { formatDate, formatTime, startOfDay } from '../utils/format';
+import { formatDate } from '../utils/format';
+import { buildHistory } from '../utils/fichajes';
+import { downloadCsv } from '../utils/csv';
 
 const VERIFICATION_LABELS = {
   wifi: 'WiFi albergue',
   gps: 'GPS verificado',
   out_of_zone: 'Fuera de zona',
 };
-
-function resolveVerificationVariant(record) {
-  if (record.verificado) {
-    return record.lat != null ? 'gps' : 'wifi';
-  }
-  return 'out_of_zone';
-}
-
-function buildHistory(fichajes) {
-  const byDay = new Map();
-  const sorted = [...fichajes].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-  sorted.forEach((f) => {
-    const day = startOfDay(new Date(f.timestamp)).toISOString();
-    const key = `${f.empleado_nombre}|${day}`;
-    if (!byDay.has(key)) {
-      byDay.set(key, { employeeName: f.empleado_nombre, date: f.timestamp, entrada: null, salida: null, records: [] });
-    }
-    const item = byDay.get(key);
-    item.records.push(f);
-    if (f.tipo === 'entrada') item.entrada = f;
-    if (f.tipo === 'salida') item.salida = f;
-  });
-  return Array.from(byDay.values())
-    .map((item) => {
-      const start = item.entrada ? new Date(item.entrada.timestamp).getTime() : null;
-      const end = item.salida ? new Date(item.salida.timestamp).getTime() : null;
-      let horas = '-';
-      if (start && end && end > start) {
-        horas = ((end - start) / 3600000).toFixed(1);
-      }
-      const verification = item.records.length > 0 ? resolveVerificationVariant(item.records[item.records.length - 1]) : 'wifi';
-      return {
-        employeeName: item.employeeName,
-        date: item.date,
-        entrada: item.entrada ? formatTime(item.entrada.timestamp) : '—',
-        salida: item.salida ? formatTime(item.salida.timestamp) : '—',
-        horas,
-        verification,
-      };
-    })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-}
 
 function formatTimeInput(timeStr) {
   if (!timeStr) return '09:00';
@@ -137,7 +97,25 @@ function HistorialTab({ employees, fichajes }) {
     }, {});
   }, [employees, records]);
 
-  const handleExport = () => showToast('Exportado (mock)');
+  const handleExport = () => {
+    if (records.length === 0) {
+      showToast('No hay fichajes para exportar', 'error');
+      return;
+    }
+    downloadCsv(
+      `fichajes-${new Date().toISOString().slice(0, 10)}.csv`,
+      ['Empleado', 'Fecha', 'Entrada', 'Salida', 'Horas', 'Verificación'],
+      records.map((r) => [
+        r.employeeName,
+        formatDate(r.date),
+        r.entrada,
+        r.salida,
+        r.horas,
+        VERIFICATION_LABELS[r.verification],
+      ])
+    );
+    showToast('CSV exportado');
+  };
 
   return (
     <div data-testid="fichaje-historial-tab">
@@ -178,7 +156,7 @@ function HistorialTab({ employees, fichajes }) {
       </div>
       <p className="text-xs text-slate-400 mb-4">Registros conservados 4 años conforme al ET art. 34.9</p>
       <Button variant="secondary" onClick={handleExport} data-testid="fichaje-export-button">
-        Exportar CSV (mock) para inspección
+        Exportar CSV para inspección
       </Button>
 
       <h2 className="text-base font-semibold text-slate-900 mt-8 mb-3">Resumen mensual</h2>

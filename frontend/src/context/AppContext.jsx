@@ -251,6 +251,7 @@ export function AppProvider({ children }) {
         hostel: mapHostel(hostel, 0),
         hostelRaw: hostel,
         role: hostalero.rol,
+        employeeId: hostalero.id,
         employeeName: hostalero.nombre,
       });
 
@@ -290,6 +291,7 @@ export function AppProvider({ children }) {
         toSave[key] = {
           hostel: state.session.hostel,
           role: state.session.role,
+          employeeId: state.session.employeeId,
           employeeName: state.session.employeeName,
         };
       } else {
