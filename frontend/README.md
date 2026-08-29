@@ -26,7 +26,7 @@ Prototipo UI standalone del panel de gestión y la web pública de BunkerHostal.
 
 ## Notas
 
-- Este frontend es un **mock visual** para validar flujos de usuario.
-- No está conectado a servicios reales de pagos, policía, firma ni alertas.
+- El frontend se conecta a Supabase (auth y datos reales); el check-in usa las APIs reales de policía y firma (`/api/policia/*`, `/api/firma/*` tras Caddy).
+- Pagos y alertas siguen sin conectar a servicios externos.
 - No se incluye tracking, analytics ni fuentes externas.
 - Incluye service worker básico para comportamiento PWA offline.

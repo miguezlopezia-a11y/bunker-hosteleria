@@ -2,17 +2,14 @@
 
 Prototipo UI de un PMS ligero para albergues y hostales: panel de gestión, web pública de reservas directas, portal del empleado, asistente MaiA, marketplace de servicios y directorio de albergues.
 
-> **Estado:** Fase 3 completa. Prototipo visual/mock para validar flujos de usuario. No está conectado a APIs reales de pagos, policía, firma ni alertas.
+> **Estado:** Fase 3 completa. Frontend conectado a Supabase (auth y datos reales). El check-in es real end-to-end: el paso 2 verifica el documento vía skill-policia (OCR de zona MRZ) y el paso 3 genera y valida la firma digital vía skill-firma. Pagos y alertas siguen sin conectar a servicios externos.
 
 ## Estructura del repo
 
 ```
 bunker-hosteleria/
 ├── frontend/          # CRA + React 18 + React Router 6 + Tailwind CSS 3
-├── EMERGENT_FASE1.md
-├── EMERGENT_FASE2.md
-├── EMERGENT_FASE3.md
-└── EMERGENT_HOSTELERIA.md
+└── migrations/        # SQL aplicado en Supabase (trazabilidad de esquema)
 ```
 
 ## Arranque rápido
@@ -25,13 +22,9 @@ npm run build      # build de producción en build/
 npm test           # tests con CRA
 ```
 
-## Usuarios de demo
+## Login
 
-| Rol         | PIN  | Flujo rápido                      |
-|-------------|------|-----------------------------------|
-| Director    | 1234 | Panel completo                   |
-| Recepción   | 1234 | Panel completo                   |
-| Empleado    | 1234 | Seleccionar empleado en login    |
+El acceso es con **email y contraseña reales** (Supabase Auth). No hay PINs ni usuarios de demo embebidos en el código: hay que darse de alta como usuario en Supabase Auth y vincularlo a un hostal en la tabla `hostaleros`.
 
 ## Funcionalidades principales
 
