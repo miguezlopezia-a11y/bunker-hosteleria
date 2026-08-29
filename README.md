@@ -1,8 +1,8 @@
 # BunkerHostal
 
-Prototipo UI de un PMS ligero para albergues y hostales: panel de gestión, web pública de reservas directas, portal del empleado, asistente MaiA, marketplace de servicios y directorio de albergues.
+PMS ligero para albergues y hostales: panel de gestión, web pública de reservas directas, portal del empleado, asistente MaiA, marketplace de servicios y directorio de albergues.
 
-> **Estado:** Fase 3 completa. Frontend conectado a Supabase (auth y datos reales). El check-in es real end-to-end: el paso 2 verifica el documento vía skill-policia (OCR de zona MRZ) y el paso 3 genera y valida la firma digital vía skill-firma. Pagos y alertas siguen sin conectar a servicios externos.
+> **Estado:** Fase 3 completa. Frontend conectado a Supabase (auth y datos reales): fichaje (con exportación CSV real, admin y empleado), limpieza, reservas, camas, habitaciones, empleados, marketplace, fidelización, notificaciones y directorio público (`/directorio`, vía RPC `list_public_hostales` — requiere `migrations/006_list_public_hostales.sql` aplicada) son reales, sin mocks. Las alertas críticas y el chat de MaiA también son reales (Edge Functions `maia-critical-alert` y `maia-chat` desplegadas). El check-in es real end-to-end: el paso 2 verifica el documento vía skill-policia (OCR de zona MRZ) y el paso 3 genera y valida la firma digital vía skill-firma. **Siguen sin conectar:** pagos (Stripe — no hay pasarela integrada) y Channel Manager (Booking.com/Airbnb — solo estado local en la app; conectar canales reales requiere acuerdos de partner con cada plataforma, decisión de negocio pendiente).
 
 ## Estructura del repo
 

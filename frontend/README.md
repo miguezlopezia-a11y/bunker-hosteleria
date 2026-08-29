@@ -1,6 +1,6 @@
 # BunkerHostal — Frontend
 
-Prototipo UI standalone del panel de gestión y la web pública de BunkerHostal.
+Frontend del panel de gestión y la web pública de BunkerHostal.
 
 ## Tecnologías
 
@@ -26,7 +26,7 @@ Prototipo UI standalone del panel de gestión y la web pública de BunkerHostal.
 
 ## Notas
 
-- El frontend se conecta a Supabase (auth y datos reales); el check-in usa las APIs reales de policía y firma (`/api/policia/*`, `/api/firma/*` tras Caddy).
-- Pagos y alertas siguen sin conectar a servicios externos.
+- El frontend se conecta a Supabase (auth y datos reales); el check-in usa las APIs reales de policía y firma (`/api/policia/*`, `/api/firma/*` tras Caddy). Las alertas críticas y el chat de MaiA usan Edge Functions reales de Supabase; el directorio público lista albergues reales vía la RPC `list_public_hostales`.
+- Pagos (Stripe) y Channel Manager (Booking.com/Airbnb) siguen sin conectar a servicios externos — el Channel Manager es solo estado local en la app.
 - No se incluye tracking, analytics ni fuentes externas.
 - Incluye service worker básico para comportamiento PWA offline.
