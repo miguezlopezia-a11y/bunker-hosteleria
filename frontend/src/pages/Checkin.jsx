@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
@@ -51,6 +52,11 @@ const TIPOS_DOC = [
 // Al activar el SES real, quitar la env var y reconstruir.
 const SES_DRY_RUN = process.env.REACT_APP_SES_DRY_RUN === 'true';
 
+// URL pública real de la PWA "Cama del Camino" (verificada viva 2026-08-30).
+// El QR de check-in apunta aquí; la sesión de peregrino la valida la RPC
+// verify_peregrino_session (migración 007).
+const PWA_BASE_URL = 'https://pwa-hostaleria.miguezlopezia.workers.dev';
+
 // ---------------------------------------------------------------------------
 // Componente
 // ---------------------------------------------------------------------------
@@ -66,6 +72,7 @@ export default function Checkin() {
   const [step, setStep] = useState(1);
   const [completed, setCompleted] = useState(false);
   const [errors, setErrors] = useState({});
+  const [peregrinoUrl, setPeregrinoUrl] = useState('');
 
   // Paso 2 — escaneo
   const [scanStatus, setScanStatus] = useState('idle'); // idle | scanning | ok | error
@@ -321,6 +328,20 @@ export default function Checkin() {
       showToast(error, 'error');
       return;
     }
+    // QR de sesión de peregrino: el token lo firma la RPC (migración 007),
+    // nunca el navegador. Si falla, el check-in ya está completado igualmente.
+    try {
+      const { data } = await supabase.rpc('generate_peregrino_token', {
+        p_reservation_id: reservation.id,
+      });
+      if (data?.exito && data?.token) {
+        setPeregrinoUrl(
+          `${PWA_BASE_URL}/peregrino?r=${reservation.id}&t=${data.token}`,
+        );
+      }
+    } catch {
+      // sin QR: no bloquea el check-in
+    }
     setCompleted(true);
   };
 
@@ -336,6 +357,17 @@ export default function Checkin() {
             <p className="text-lg font-semibold text-slate-900">
               Check-in completado · Cama {reservation.bed} asignada
             </p>
+            {peregrinoUrl && (
+              <div className="mt-5 flex flex-col items-center gap-2" data-testid="checkin-qr">
+                <p className="text-sm text-slate-600">
+                  El huésped puede escanear este QR para abrir su sesión en la PWA
+                </p>
+                <QRCodeSVG value={peregrinoUrl} size={180} />
+                <p className="text-xs text-slate-400 break-all text-center" data-testid="checkin-peregrino-url">
+                  {peregrinoUrl}
+                </p>
+              </div>
+            )}
             <Button className="mt-5" fullWidth onClick={() => navigate('/dashboard')} data-testid="checkin-success-dashboard-button">
               Volver al dashboard
             </Button>
