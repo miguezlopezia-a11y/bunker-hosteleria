@@ -102,22 +102,31 @@ export default function Web() {
     if (Object.keys(newErrors).length > 0) return;
 
     setSubmitting(true);
-    const { error } = await publicService.createPublicBooking({
-      slug,
-      bedLabel: selectedBed.label,
-      guestName: form.name,
-      guestEmail: form.email,
-      guestPhone: form.phone,
-      guestDocument: form.document,
-      guestNationality: form.nationality,
-      checkin: toDbDate(checkin),
-      checkout: toDbDate(checkout),
-      price: hostel.base_price,
-    });
+    let data, error;
+    try {
+      ({ data, error } = await publicService.createPublicBooking({
+        slug,
+        bedLabel: selectedBed.label,
+        guestName: form.name,
+        guestEmail: form.email,
+        guestPhone: form.phone,
+        guestDocument: form.document,
+        guestNationality: form.nationality,
+        checkin: toDbDate(checkin),
+        checkout: toDbDate(checkout),
+        price: hostel.base_price,
+      }));
+    } catch (networkErr) {
+      error = networkErr;
+    }
     setSubmitting(false);
 
     if (error) {
-      setErrors({ submit: 'No se pudo completar la reserva. Inténtalo de nuevo.' });
+      setErrors({ submit: 'Sin conexión con el servidor. Comprueba tu cobertura e inténtalo de nuevo.' });
+      return;
+    }
+    if (!data?.exito) {
+      setErrors({ submit: data?.error || 'No se pudo completar la reserva. Inténtalo de nuevo.' });
       return;
     }
 
