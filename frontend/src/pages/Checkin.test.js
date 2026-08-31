@@ -52,7 +52,12 @@ jest.mock('../lib/supabase', () => {
         onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
       },
       from: (table) => chain(table),
-      rpc: () => makeThenable({ data: [], error: null }),
+      rpc: (fn) =>
+        makeThenable(
+          fn === 'generate_peregrino_token'
+            ? { data: { exito: true, token: 'tok-qr-123' }, error: null }
+            : { data: [], error: null }
+        ),
     },
   };
 });
@@ -139,6 +144,12 @@ test('flujo feliz: scan real OK → firma → completar', async () => {
   await waitFor(() => expect(screen.getByTestId('checkin-complete-button')).toBeEnabled());
   fireEvent.click(screen.getByTestId('checkin-complete-button'));
   await waitFor(() => expect(screen.getByTestId('checkin-success-screen')).toBeInTheDocument(), { timeout: 5000 });
+
+  // QR de sesión de peregrino: URL firmada por la RPC (migración 007)
+  await waitFor(() => expect(screen.getByTestId('checkin-qr')).toBeInTheDocument());
+  expect(screen.getByTestId('checkin-peregrino-url')).toHaveTextContent(
+    'https://pwa-hostaleria.miguezlopezia.workers.dev/peregrino?r=r1&t=tok-qr-123'
+  );
 }, 20000);
 
 test('documento caducado → mensaje LEGAL específico y no avanza', async () => {
