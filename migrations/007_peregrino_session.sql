@@ -42,8 +42,12 @@ begin
   select id, hostal_id, checkout into r
     from public.reservations
    where id = p_reservation_id;
+
+  -- Mensaje genérico a propósito: un hostalero autenticado de OTRO hostal no
+  -- debe poder distinguir, por la respuesta, si una reserva ajena existe o no
+  -- (anti-enumeración). "no existe" y "no es tuya" devuelven lo mismo.
   if not found then
-    return jsonb_build_object('exito', false, 'error', 'reserva no encontrada');
+    return jsonb_build_object('exito', false, 'error', 'no se pudo generar el token');
   end if;
 
   if coalesce(auth.jwt() ->> 'role', '') <> 'service_role'
@@ -51,7 +55,7 @@ begin
        select 1 from public.hostaleros h
        where h.id = auth.uid() and h.hostal_id = r.hostal_id
      ) then
-    return jsonb_build_object('exito', false, 'error', 'no autorizado para esta reserva');
+    return jsonb_build_object('exito', false, 'error', 'no se pudo generar el token');
   end if;
 
   select value into secret from public.app_secrets where key = 'peregrino_hmac_secret';
@@ -90,19 +94,28 @@ begin
     from public.reservations res
     join public.hostales h on h.id = res.hostal_id
    where res.id = p_reservation_id;
+  -- Mensaje genérico ÚNICO para los tres fallos (no existe / token mal /
+  -- caducada): evita que un atacante distinga por la respuesta si la reserva
+  -- existe, si el token es incorrecto o si caducó (anti-enumeración).
   if not found then
-    return jsonb_build_object('valid', false, 'error', 'reserva no encontrada');
+    return jsonb_build_object('valid', false, 'error', 'sesión inválida');
   end if;
 
   select value into secret from public.app_secrets where key = 'peregrino_hmac_secret';
   esperado := encode(hmac(r.id::text || ':' || r.checkout::text, secret, 'sha256'), 'hex');
 
+  -- RIESGO ACEPTADO: la comparación de HMAC (texto hex con <>) no es
+  -- constante en tiempo; plpgsql/pgcrypto no ofrecen una comparación
+  -- constante-en-tiempo trivial. Se acepta porque explotar el oráculo de
+  -- temporización requeriría una precisión de medición que el jitter de red
+  -- de HTTPS/REST (varios ms, muy superior a las diferencias de comparación
+  -- de strings, del orden de ns) hace inviable en la práctica.
   if p_token is null or p_token <> esperado then
-    return jsonb_build_object('valid', false, 'error', 'token inválido');
+    return jsonb_build_object('valid', false, 'error', 'sesión inválida');
   end if;
 
   if r.checkout + 1 < current_date then
-    return jsonb_build_object('valid', false, 'error', 'sesión expirada');
+    return jsonb_build_object('valid', false, 'error', 'sesión inválida');
   end if;
 
   return jsonb_build_object(
