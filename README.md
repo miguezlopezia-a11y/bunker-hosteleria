@@ -50,6 +50,10 @@ El acceso es con **email y contraseña reales** (Supabase Auth). No hay PINs ni 
 - **PWA básica:** manifest + service worker + iconos PNG/SVG para cache offline de la shell.
 - **Tests:** smoke tests con React Testing Library.
 
+## Seguridad
+
+- Security Advisor de Supabase (2026-09-01): vista `maia_red_camino` (fuga real, ver `migrations/012`) y grants `EXECUTE` internos (`migrations/013`) corregidos. Pendiente sin resolver: "Prevent use of leaked passwords" en Auth requiere plan Pro o superior de Supabase, no disponible en el plan actual.
+
 ## Notas legales/mock
 
 - Todos los documentos, teléfonos y emails de los datos de demo son ficticios.
