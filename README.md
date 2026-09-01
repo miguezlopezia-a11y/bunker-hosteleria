@@ -54,6 +54,10 @@ El acceso es con **email y contraseña reales** (Supabase Auth). No hay PINs ni 
 
 - Security Advisor de Supabase (2026-09-01): vista `maia_red_camino` (fuga real, ver `migrations/012`) y grants `EXECUTE` internos (`migrations/013`) corregidos. Pendiente sin resolver: "Prevent use of leaked passwords" en Auth requiere plan Pro o superior de Supabase, no disponible en el plan actual.
 
+## Bloqueante para beta con hostaleros reales
+
+- **Email de reservas (`send-email`) usa `from: onboarding@resend.dev`** (remitente de pruebas de Resend) porque `bunkerhostal.com` no está verificado en Resend → Domains. Hay que verificar el dominio (registros DNS, ver docs de Resend) **antes** de la beta con los primeros hostaleros: con el remitente de pruebas, cualquier email a un huésped real que no sea la cuenta de Resend del proyecto puede ser rechazado o marcado como spam.
+
 ## Notas legales/mock
 
 - Todos los documentos, teléfonos y emails de los datos de demo son ficticios.
