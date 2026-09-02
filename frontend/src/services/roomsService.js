@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 
 export const roomsService = {
   listByHostal: (hostalId) =>
-    supabase.from('rooms').select('*').eq('hostal_id', hostalId).order('created_at', { ascending: true }),
+    supabase.from('rooms').select('*').eq('hostal_id', hostalId).order('name', { ascending: true }),
 
   create: (room) => supabase.from('rooms').insert(room).select(),
 
