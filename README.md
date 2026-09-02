@@ -58,6 +58,12 @@ El acceso es con **email y contraseña reales** (Supabase Auth). No hay PINs ni 
 
 - **Email de reservas (`send-email`) usa `from: onboarding@resend.dev`** (remitente de pruebas de Resend) porque `bunkerhostal.com` no está verificado en Resend → Domains. Hay que verificar el dominio (registros DNS, ver docs de Resend) **antes** de la beta con los primeros hostaleros: con el remitente de pruebas, cualquier email a un huésped real que no sea la cuenta de Resend del proyecto puede ser rechazado o marcado como spam.
 
+## Imagen de prueba para el escaneo de check-in (paso 2)
+
+- La imagen con MRZ real que el OCR (Tesseract) lee correctamente vive **solo** en el VPS: `root@46.224.0.226:/root/dni_test.png` (44KB, verificada 2026-08-31 con `skill_policia.py scan`, todos los `mrz_checks` en `true`).
+- Las imágenes `dni_test.png`/`dni_test_v2.png` de `bunker-2026/test/` en local **no son la misma** (5-6KB, nunca verificadas) — el OCR no las lee. No usarlas para probar el check-in.
+- Para bajarla: `scp root@46.224.0.226:/root/dni_test.png ./dni_test_real.png`.
+
 ## Notas legales/mock
 
 - Todos los documentos, teléfonos y emails de los datos de demo son ficticios.
