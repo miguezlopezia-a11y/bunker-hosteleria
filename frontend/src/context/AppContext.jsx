@@ -405,10 +405,10 @@ export function AppProvider({ children }) {
     );
 
     const { error: guestError } = await guestsService.create(guestInput);
-    if (guestError) return { error: 'No se pudo registrar el huésped' };
+    if (guestError) return { error: `No se pudo registrar el huésped: ${guestError.message}` };
 
     const { error: bedError } = await bedsService.update(dbReservation.bed_id, { status: 'occupied' });
-    if (bedError) return { error: 'No se pudo ocupar la cama' };
+    if (bedError) return { error: `No se pudo ocupar la cama: ${bedError.message}` };
 
     await loadCoreData(hostalId);
     return { error: null };
