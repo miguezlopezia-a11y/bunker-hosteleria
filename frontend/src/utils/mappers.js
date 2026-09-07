@@ -46,6 +46,9 @@ export function mapRoom(dbRoom, index, bedsInRoom) {
     id: index,
     _dbId: dbRoom.id,
     name: dbRoom.name,
+    tipo: dbRoom.tipo || 'dormitorio',
+    pricePerNight: dbRoom.price_per_night != null ? Number(dbRoom.price_per_night) : null,
+    occupancyStatus: dbRoom.occupancy_status || 'free',
     capacity: dbRoom.capacity,
     beds: bedsInRoom.map((bed) => bed.label),
     status: 'clean',
@@ -121,16 +124,16 @@ export function toDateString(date) {
   return `${year}-${month}-${day}`;
 }
 
-export function toReservationInput(frontendReservation, hostalId, bedId) {
+export function toReservationInput(frontendReservation, hostalId, bedId, roomId = null) {
+  // guest_phone/estimated_time no existen en reservations (sonda 400) — no se envían
   return {
     hostal_id: hostalId,
-    bed_id: bedId,
+    bed_id: bedId || null,
+    room_id: roomId || null,
     guest_name: frontendReservation.guestName,
     guest_email: frontendReservation.email || null,
-    guest_phone: frontendReservation.phone || null,
     nationality: frontendReservation.nationality || null,
     channel: frontendReservation.origin || 'directo',
-    estimated_time: frontendReservation.estimatedTime || null,
     checkin: toDateString(frontendReservation.checkin),
     checkout: toDateString(frontendReservation.checkout),
     price: frontendReservation.price,

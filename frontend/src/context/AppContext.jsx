@@ -346,13 +346,23 @@ export function AppProvider({ children }) {
     const hostalId = state.session?.hostelRaw?.id;
     if (!hostalId) return { error: 'No hay sesión' };
 
-    const bedIdByLabel = buildBedIdByLabelMap(
-      state.beds.map((b) => ({ label: b.id, id: b._dbId }))
-    );
-    const bedId = bedIdByLabel.get(reservation.bed);
-    if (!bedId) return { error: 'Cama no válida' };
+    let bedId = null;
+    let roomId = null;
+    let room = null;
+    if (reservation.roomDbId) {
+      // Reserva de habitación privada: unidad = room_id, sin cama
+      room = state.rooms.find((r) => r._dbId === reservation.roomDbId);
+      if (!room || room.tipo !== 'privada') return { error: 'Habitación no válida' };
+      roomId = room._dbId;
+    } else {
+      const bedIdByLabel = buildBedIdByLabelMap(
+        state.beds.map((b) => ({ label: b.id, id: b._dbId }))
+      );
+      bedId = bedIdByLabel.get(reservation.bed);
+      if (!bedId) return { error: 'Cama no válida' };
+    }
 
-    const input = toReservationInput(reservation, hostalId, bedId);
+    const input = toReservationInput(reservation, hostalId, bedId, roomId);
     const { data: created, error } = await reservationsService.create(input);
     if (error) return { error: 'No se pudo crear la reserva' };
 
@@ -367,7 +377,7 @@ export function AppProvider({ children }) {
             hostalName: state.session?.hostel?.name || 'BunkerHostal',
             checkin: dbReservation.checkin,
             checkout: dbReservation.checkout,
-            bedLabel: reservation.bed,
+            bedLabel: room ? `Habitación ${room.name}` : reservation.bed,
           },
           hostal_id: hostalId,
         });
@@ -379,7 +389,7 @@ export function AppProvider({ children }) {
 
     await loadCoreData(hostalId);
     return { error: null };
-  }, [loadCoreData, state.session, state.beds]);
+  }, [loadCoreData, state.session, state.beds, state.rooms]);
 
   const checkInReservation = useCallback(async (reservationId, guestDetails) => {
     const hostalId = state.session?.hostelRaw?.id;
