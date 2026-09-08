@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
+import { supabase } from '../lib/supabase';
 const CAMINO = {
   stage: { from: 'Pamplona', to: 'Logroño', km: 62, difficulty: 'Dificultad media' },
   weatherToday: { temp: 18, condition: 'Parcialmente nublado', wind: 12 },
@@ -71,6 +72,115 @@ function ShareDirectBookingCard({ hostel }) {
         </Button>
       </div>
     </Card>
+  );
+}
+
+// Check-ins online (OTP por email + firma digital) pre-verificados y aún sin
+// entrada registrada: verificado_otp_at NOT NULL AND entrada_at IS NULL.
+// Fetch local en el componente, como ShareDirectBookingCard: es una sección
+// autónoma del dashboard y no merece pasar por AppContext.
+function CheckinOnlinePendientes() {
+  const { session } = useApp();
+  const { showToast } = useToast();
+  const hostalId = session?.hostelRaw?.id;
+  // null = aún sin respuesta; la sección no se renderiza hasta tenerla (ver return).
+  const [items, setItems] = useState(null);
+  const [registrandoId, setRegistrandoId] = useState(null);
+
+  useEffect(() => {
+    if (!hostalId) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        // Sin filtro por hostal_id: la RLS ya limita las filas al hostal
+        // autenticado. La query va en try/catch para que un fallo de red o
+        // de esquema deje la sección oculta en vez de romper el dashboard.
+        const { data, error } = await supabase
+          .from('huespedes')
+          .select('id, nombre, apellidos, num_documento, firma_digital_url, verificado_otp_at, reservation_id, reservations(checkin, checkout)')
+          .not('verificado_otp_at', 'is', null)
+          .is('entrada_at', null)
+          .order('verificado_otp_at', { ascending: false });
+        if (cancelled) return;
+        setItems(error ? [] : data || []);
+      } catch {
+        if (!cancelled) setItems([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [hostalId]);
+
+  const handleRegistrarEntrada = async (item) => {
+    setRegistrandoId(item.id);
+    try {
+      // La RPC devuelve el error de negocio en data.error con HTTP 200;
+      // el `error` de supabase-js solo cubre fallos de red/permisos.
+      const { data } = await supabase.rpc('registrar_entrada_peregrino', {
+        p_reservation_id: item.reservation_id,
+      });
+      if (data?.exito) {
+        showToast('Entrada registrada');
+        // La RPC es idempotente (una segunda llamada devuelve "ya está
+        // registrada"), así que quitar el item localmente es seguro y
+        // evita un refetch.
+        setItems((prev) => (prev || []).filter((h) => h.id !== item.id));
+      } else {
+        showToast(data?.error || 'No se pudo registrar la entrada', 'error');
+      }
+    } catch {
+      showToast('No se pudo registrar la entrada', 'error');
+    } finally {
+      setRegistrandoId(null);
+    }
+  };
+
+  // Decisión de UX: sin spinner ni empty-state. Mientras carga no se
+  // renderiza nada y con la lista vacía la sección entera desaparece — solo
+  // aplica a albergues que usan el check-in online, y un bloque vacío fijo
+  // sería ruido diario para los que no (a diferencia de "Llegadas
+  // pendientes", que es información core de cada día).
+  if (!hostalId || !items || items.length === 0) return null;
+
+  return (
+    <div className="mb-6" data-testid="checkin-online-section">
+      <h2 className="text-base font-semibold text-slate-900 mb-1">Check-in online verificados</h2>
+      <p className="text-xs text-slate-400 mb-3">
+        Ya han verificado su email y firmado su parte. Registra su entrada al llegar.
+      </p>
+      <div className="flex flex-col gap-2">
+        {items.map((h) => (
+          <Card key={h.id} className="flex items-center justify-between gap-3" data-testid={`preverificado-card-${h.id}`}>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">
+                {h.nombre} {h.apellidos}{' '}
+                <span className="text-slate-400 font-normal">({h.num_documento})</span>
+              </p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {formatDate(h.reservations?.checkin)} → {formatDate(h.reservations?.checkout)}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* El badge se ve ANTES de pulsar: la RPC rechaza la entrada si
+                  no hay firma, y así el hostalero lo sabe de antemano en vez
+                  de descubrirlo con un error tras el click. */}
+              {h.firma_digital_url ? (
+                <Badge variant="checkin_completado" data-testid={`firma-badge-${h.id}`}>Firmado</Badge>
+              ) : (
+                <Badge variant="pendiente" data-testid={`firma-badge-${h.id}`}>Sin firmar</Badge>
+              )}
+              <Button
+                variant="primary"
+                onClick={() => handleRegistrarEntrada(h)}
+                disabled={registrandoId === h.id}
+                data-testid={`registrar-entrada-button-${h.id}`}
+              >
+                Registrar entrada
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -229,6 +339,8 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        <CheckinOnlinePendientes />
 
         <div>
           <div className="flex items-center justify-between mb-3">
