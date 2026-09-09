@@ -67,10 +67,11 @@ export function mapBed(dbBed, roomIndex, activeGuestId) {
   };
 }
 
-export function mapReservation(dbReservation, roomIndexMap, bedLabelMap) {
-  const roomId = dbReservation.bed_id ? null : null; // se resuelve externamente
+export function mapReservation(dbReservation, roomIndexMap, bedLabelMap, roomInfoByDbId = new Map()) {
   const bedLabel = bedLabelMap.get(dbReservation.bed_id) || null;
   const roomIndex = bedLabel && bedLabel.length ? roomIndexFromBedLabel(bedLabel, roomIndexMap) : null;
+  // Reserva de habitación privada: sin cama; la unidad es la room
+  const roomInfo = dbReservation.room_id ? roomInfoByDbId.get(dbReservation.room_id) : null;
 
   return {
     id: dbReservation.id,
@@ -79,7 +80,8 @@ export function mapReservation(dbReservation, roomIndexMap, bedLabelMap) {
     checkin: dbReservation.checkin ? new Date(dbReservation.checkin) : null,
     checkout: dbReservation.checkout ? new Date(dbReservation.checkout) : null,
     bed: bedLabel,
-    room: roomIndex,
+    room: roomInfo ? roomInfo.index : roomIndex,
+    roomName: roomInfo ? roomInfo.name : null,
     price: Number(dbReservation.price),
     origin: dbReservation.channel,
     status: dbReservation.status,
@@ -89,8 +91,9 @@ export function mapReservation(dbReservation, roomIndexMap, bedLabelMap) {
   };
 }
 
-export function mapGuest(dbGuest, bedLabelMap) {
+export function mapGuest(dbGuest, bedLabelMap, roomInfoByDbId = new Map()) {
   const bedLabel = bedLabelMap.get(dbGuest.bed_id) || null;
+  const roomInfo = dbGuest.room_id ? roomInfoByDbId.get(dbGuest.room_id) : null;
   return {
     id: dbGuest.id,
     name: dbGuest.name,
@@ -100,6 +103,7 @@ export function mapGuest(dbGuest, bedLabelMap) {
     phone: dbGuest.phone || '',
     email: dbGuest.email || '',
     bedId: bedLabel,
+    roomName: roomInfo ? roomInfo.name : null,
     checkin: dbGuest.checkin ? new Date(dbGuest.checkin) : null,
     checkout: dbGuest.checkout ? new Date(dbGuest.checkout) : null,
     price: Number(dbGuest.price),
@@ -232,11 +236,12 @@ export function mapLoyaltyMember(dbMember) {
   };
 }
 
-export function toGuestInput(frontendGuest, hostalId, reservationId, bedId) {
+export function toGuestInput(frontendGuest, hostalId, reservationId, bedId, roomId = null) {
   return {
     hostal_id: hostalId,
     reservation_id: reservationId,
-    bed_id: bedId,
+    bed_id: bedId || null,
+    room_id: roomId || null,
     name: frontendGuest.name,
     email: frontendGuest.email || null,
     document: frontendGuest.document || null,
