@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
+import { supabase } from '../lib/supabase';
 const CAMINO = {
   stage: { from: 'Pamplona', to: 'Logroño', km: 62, difficulty: 'Dificultad media' },
   weatherToday: { temp: 18, condition: 'Parcialmente nublado', wind: 12 },
@@ -71,6 +72,162 @@ function ShareDirectBookingCard({ hostel }) {
         </Button>
       </div>
     </Card>
+  );
+}
+
+// Check-ins online (OTP por email + firma digital) pre-verificados y aún sin
+// entrada registrada: verificado_otp_at NOT NULL AND entrada_at IS NULL.
+// Fetch local en el componente, como ShareDirectBookingCard: es una sección
+// autónoma del dashboard y no merece pasar por AppContext.
+function CheckinOnlinePendientes() {
+  const { session } = useApp();
+  const { showToast } = useToast();
+  const hostalId = session?.hostelRaw?.id;
+  // null = aún sin respuesta; la sección no se renderiza hasta tenerla (ver return).
+  const [items, setItems] = useState(null);
+  const [registrandoId, setRegistrandoId] = useState(null);
+  // Tarjeta cuyo aviso de "sin firmar" está desplegado (un id o null).
+  const [avisoFirmaId, setAvisoFirmaId] = useState(null);
+
+  useEffect(() => {
+    if (!hostalId) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        // Sin filtro por hostal_id: la RLS ya limita las filas al hostal
+        // autenticado. La query va en try/catch para que un fallo de red o
+        // de esquema deje la sección oculta en vez de romper el dashboard.
+        //
+        // El embed va con !inner + neq sobre reservations.status: sin ese
+        // filtro, si el huésped entró por el check-in PRESENCIAL la reserva
+        // pasa a checkin_completado pero entrada_at sigue NULL en huespedes,
+        // y la tarjeta se quedaría encallada en esta sección para siempre.
+        const { data, error } = await supabase
+          .from('huespedes')
+          .select('id, nombre, apellidos, num_documento, firma_digital_url, verificado_otp_at, reservation_id, reservations!inner(checkin, checkout, status)')
+          .not('verificado_otp_at', 'is', null)
+          .is('entrada_at', null)
+          .neq('reservations.status', 'checkin_completado')
+          .order('verificado_otp_at', { ascending: false });
+        if (cancelled) return;
+        setItems(error ? [] : data || []);
+      } catch {
+        if (!cancelled) setItems([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [hostalId]);
+
+  const MENSAJE_ERROR_GENERICO =
+    'No se pudo registrar la entrada. Inténtalo de nuevo; si sigue fallando, haz el check-in a mano desde Llegadas pendientes.';
+
+  const handleRegistrarEntrada = async (item) => {
+    // SIEMPRE llamamos a la RPC aunque el badge diga "Sin firmar": la lista se
+    // cargó una vez al montar y firma_digital_url puede estar obsoleto (el
+    // peregrino pudo firmar después). El servidor es la fuente de verdad; el
+    // badge es solo una pista visual, nunca bloquea el click.
+    setRegistrandoId(item.id);
+    try {
+      // La RPC devuelve el error de negocio en data.error con HTTP 200;
+      // el `error` de supabase-js solo cubre fallos de red/permisos.
+      const { data } = await supabase.rpc('registrar_entrada_peregrino', {
+        p_reservation_id: item.reservation_id,
+      });
+      if (data?.exito) {
+        showToast('Entrada registrada — el huésped ya tiene el check-in completado.');
+        // La RPC es idempotente (una segunda llamada devuelve "ya está
+        // registrada"), así que quitar el item localmente es seguro y
+        // evita un refetch.
+        setItems((prev) => (prev || []).filter((h) => h.id !== item.id));
+      } else if (data?.error && /firma/i.test(data.error)) {
+        // La firma puede faltar aunque el badge dijera "Firmado" (p.ej. la
+        // lista se cargó antes de que se invalidara). Mismo aviso accionable
+        // dentro de la tarjeta, no toast.
+        setAvisoFirmaId(item.id);
+      } else {
+        showToast(data?.error || MENSAJE_ERROR_GENERICO, 'error');
+      }
+    } catch {
+      showToast(MENSAJE_ERROR_GENERICO, 'error');
+    } finally {
+      setRegistrandoId(null);
+    }
+  };
+
+  // Decisión de UX: sin spinner ni empty-state. Mientras carga no se
+  // renderiza nada y con la lista vacía la sección entera desaparece — solo
+  // aplica a albergues que usan el check-in online, y un bloque vacío fijo
+  // sería ruido diario para los que no (a diferencia de "Llegadas
+  // pendientes", que es información core de cada día).
+  if (!hostalId || !items || items.length === 0) return null;
+
+  return (
+    <div className="mb-6" data-testid="checkin-online-section">
+      <h2 className="text-base font-semibold text-slate-900 mb-1">Check-in online verificados</h2>
+      {/* Qué es esto y qué hacer, en una frase: el hostalero que la ve por
+          primera vez debe saber actuar sin preguntar. */}
+      <p className="text-xs text-slate-400 mb-3" data-testid="checkin-online-aviso">
+        Estos peregrinos ya han verificado su email y firmado su parte, pero la identidad se confirma
+        aquí, en persona: compara con su documento físico y pulsa «Registrar entrada» cuando lleguen.
+      </p>
+      <div className="flex flex-col gap-2">
+        {items.map((h) => (
+          <Card key={h.id} className="flex flex-col gap-2" data-testid={`preverificado-card-${h.id}`}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  {h.nombre} {h.apellidos}{' '}
+                  <span className="text-slate-400 font-normal">({h.num_documento})</span>
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {formatDate(h.reservations?.checkin)} → {formatDate(h.reservations?.checkout)}
+                </p>
+                {/* Recordatorio legal en cada tarjeta: la verificación online
+                    no sustituye la comprobación presencial del documento. */}
+                <p className="text-xs text-amber-600 mt-1" data-testid={`aviso-doc-${h.id}`}>
+                  Comprueba el DNI/documento físico del huésped antes de registrar la entrada — la verificación online no sustituye este paso.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {/* El badge se ve ANTES de pulsar: la RPC rechaza la entrada si
+                    no hay firma, y así el hostalero lo sabe de antemano en vez
+                    de descubrirlo con un error tras el click. */}
+                {h.firma_digital_url ? (
+                  <Badge variant="checkin_completado" data-testid={`firma-badge-${h.id}`}>Firmado</Badge>
+                ) : (
+                  <Badge variant="pendiente" data-testid={`firma-badge-${h.id}`}>Sin firmar</Badge>
+                )}
+                <Button
+                  variant="primary"
+                  onClick={() => handleRegistrarEntrada(h)}
+                  disabled={registrandoId === h.id}
+                  data-testid={`registrar-entrada-button-${h.id}`}
+                >
+                  Registrar entrada
+                </Button>
+              </div>
+            </div>
+            {/* Falta la firma: mensaje accionable dentro de la tarjeta (qué
+                puede hacer el peregrino y qué puede hacer el hostalero), no
+                un toast que desaparece a los 3 segundos. */}
+            {avisoFirmaId === h.id && (
+              <p
+                className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2"
+                data-testid={`aviso-firma-${h.id}`}
+              >
+                El peregrino verificó su email pero no ha firmado todavía. Puede terminarlo él mismo
+                desde el enlace que le llegó por email, o puedes hacerle el check-in a mano ahora
+                mismo desde{' '}
+                <Link to={`/checkin/${h.reservation_id}`} className="font-semibold underline">
+                  Check-in
+                </Link>
+                .
+              </p>
+            )}
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -229,6 +386,8 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        <CheckinOnlinePendientes />
 
         <div>
           <div className="flex items-center justify-between mb-3">
