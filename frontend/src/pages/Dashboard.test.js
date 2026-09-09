@@ -92,7 +92,7 @@ test('sin pre-verificados: la sección no aparece (aunque la query sí se lanza)
   expect(screen.queryByText('Check-in online verificados')).toBeNull();
 });
 
-test('pre-verificado firmado: badge "Firmado" y click registra la entrada y lo quita de la lista', async () => {
+test('pre-verificado firmado: badge "Firmado", aviso de documento físico y click registra la entrada y lo quita de la lista', async () => {
   mockPreverificados = [HUESPED_FIRMADO];
   mockRpcResult = { data: { exito: true }, error: null };
 
@@ -103,6 +103,9 @@ test('pre-verificado firmado: badge "Firmado" y click registra la entrada y lo q
   expect(screen.getByTestId('preverificado-card-hue-1')).toHaveTextContent('12345678Z');
   expect(screen.getByTestId('preverificado-card-hue-1')).toHaveTextContent('08/09/2026 → 10/09/2026');
   expect(screen.getByTestId('firma-badge-hue-1')).toHaveTextContent('Firmado');
+  // Aviso legal por tarjeta: la verificación online no sustituye el documento físico.
+  expect(screen.getByTestId('aviso-doc-hue-1')).toHaveTextContent('Comprueba el DNI/documento físico');
+  expect(screen.getByTestId('checkin-online-aviso')).toHaveTextContent('la identidad se confirma');
 
   fireEvent.click(screen.getByTestId('registrar-entrada-button-hue-1'));
 
@@ -113,7 +116,7 @@ test('pre-verificado firmado: badge "Firmado" y click registra la entrada y lo q
   expect(screen.getByTestId('toast-notification')).toHaveTextContent('Entrada registrada');
 });
 
-test('pre-verificado sin firmar: badge "Sin firmar" y error de la RPC deja el item y avisa', async () => {
+test('pre-verificado sin firmar: el click SÍ llama a la RPC (el servidor manda, no el badge) y su error de firma muestra el aviso inline', async () => {
   mockPreverificados = [HUESPED_SIN_FIRMA];
   mockRpcResult = { data: { exito: false, error: 'falta la firma del huésped' }, error: null };
 
@@ -124,9 +127,32 @@ test('pre-verificado sin firmar: badge "Sin firmar" y error de la RPC deja el it
 
   fireEvent.click(screen.getByTestId('registrar-entrada-button-hue-2'));
 
-  await waitFor(() =>
-    expect(screen.getByTestId('toast-notification')).toHaveTextContent('falta la firma del huésped')
-  );
-  // El item sigue en la lista: la entrada NO se ha registrado.
+  // El botón siempre pregunta al servidor: la lista se cargó una vez al montar
+  // y firma_digital_url puede estar obsoleto (el peregrino pudo firmar después).
+  // Se espera el aviso (render post-resolución de la RPC), no solo la llamada.
+  await waitFor(() => expect(screen.getByTestId('aviso-firma-hue-2')).toBeInTheDocument());
+  expect(mockRpcCalls).toContainEqual(['registrar_entrada_peregrino', { p_reservation_id: 'res-2' }]);
+
+  // Sin toast: el aviso accionable vive dentro de la tarjeta y no desaparece.
+  expect(screen.queryByTestId('toast-notification')).toBeNull();
+  const aviso = screen.getByTestId('aviso-firma-hue-2');
+  expect(aviso).toHaveTextContent('El peregrino verificó su email pero no ha firmado todavía');
+  // El enlace lleva al wizard presencial de esa reserva.
+  expect(aviso.querySelector('a')).toHaveAttribute('href', '/checkin/res-2');
+  // El item no se ha ido de la lista.
   expect(screen.getByTestId('preverificado-card-hue-2')).toBeInTheDocument();
+});
+
+test('badge "Firmado" pero la RPC responde falta de firma: mismo aviso inline, sin toast', async () => {
+  mockPreverificados = [HUESPED_FIRMADO];
+  mockRpcResult = { data: { exito: false, error: 'falta la firma del huésped' }, error: null };
+
+  renderWithProviders(<Dashboard />);
+
+  await waitFor(() => expect(screen.getByTestId('registrar-entrada-button-hue-1')).toBeInTheDocument(), { timeout: 5000 });
+  fireEvent.click(screen.getByTestId('registrar-entrada-button-hue-1'));
+
+  await waitFor(() => expect(screen.getByTestId('aviso-firma-hue-1')).toBeInTheDocument());
+  expect(screen.queryByTestId('toast-notification')).toBeNull();
+  expect(screen.getByTestId('preverificado-card-hue-1')).toBeInTheDocument();
 });
