@@ -143,7 +143,7 @@ function GuestDetailModal({ guest, onClose, onCheckout, onSendPaymentLink }) {
         <div>
           <h3 className="text-sm font-semibold text-slate-900 mb-2">Estancia</h3>
           <div className="grid grid-cols-2 gap-2 text-sm text-slate-600">
-            <p><span className="text-slate-400">Cama: </span>{guest.bedId}</p>
+            <p><span className="text-slate-400">{guest.roomName ? 'Habitación: ' : 'Cama: '}</span>{guest.roomName || guest.bedId}</p>
             <p><span className="text-slate-400">Precio: </span>{formatEuro(guest.price)}</p>
             <p><span className="text-slate-400">Fechas: </span>{formatDate(guest.checkin)} — {formatDate(guest.checkout)}</p>
             <p><span className="text-slate-400">Origen: </span>{guest.origin}</p>
@@ -232,7 +232,7 @@ export default function Huespedes() {
                       <span className="text-xs text-slate-400">({g.nationality})</span>
                     </div>
                     <p className="text-xs text-slate-400">
-                      Cama {g.bedId} · {formatDate(g.checkin)} — {formatDate(g.checkout)}
+                      {g.roomName ? `Habitación ${g.roomName}` : `Cama ${g.bedId}`} · {formatDate(g.checkin)} — {formatDate(g.checkout)}
                     </p>
                   </div>
                   <Badge variant={checkoutToday ? 'checkout_hoy' : 'activo'}>

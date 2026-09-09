@@ -371,7 +371,7 @@ export default function Dashboard() {
                       {r.guestName} <span className="text-slate-400 font-normal">({r.nationality})</span>
                     </p>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Cama {r.bed} · {r.estimatedTime}
+                      {r.roomName ? `Habitación ${r.roomName}` : `Cama ${r.bed}`} · {r.estimatedTime}
                     </p>
                   </div>
                   <Button
@@ -409,7 +409,7 @@ export default function Dashboard() {
                   <div>
                     <p className="text-sm font-medium text-slate-900">{g.name}</p>
                     <p className="text-xs text-slate-400">
-                      Cama {g.bedId} · Sale el {formatDate(g.checkout)}
+                      {g.roomName ? `Habitación ${g.roomName}` : `Cama ${g.bedId}`} · Sale el {formatDate(g.checkout)}
                     </p>
                   </div>
                   <button
