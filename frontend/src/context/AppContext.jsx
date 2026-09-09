@@ -691,6 +691,10 @@ export function AppProvider({ children }) {
     if (updates.googleReviewUrl !== undefined) dbUpdates.google_review_url = updates.googleReviewUrl;
     if (updates.bookingReviewUrl !== undefined) dbUpdates.booking_review_url = updates.bookingReviewUrl;
     if (updates.autoSendSurvey !== undefined) dbUpdates.auto_send_survey = updates.autoSendSurvey;
+    if (updates.descripcionLarga !== undefined) dbUpdates.descripcion_larga = updates.descripcionLarga;
+    if (updates.fotos !== undefined) dbUpdates.fotos = updates.fotos;
+    if (updates.colorAcento !== undefined) dbUpdates.color_acento = updates.colorAcento;
+    if (updates.paginaWebActiva !== undefined) dbUpdates.pagina_web_activa = updates.paginaWebActiva;
 
     if (Object.keys(dbUpdates).length > 0) {
       const { error } = await hostalesService.update(hostalId, dbUpdates);

@@ -7,6 +7,11 @@ export const publicService = {
 
   getBedsByHostalSlug: (slug) => supabase.rpc('get_beds_by_hostal_slug', { p_slug: slug }),
 
+  // Página web pública por hostal (migración 023). SIN .single(): slug
+  // inexistente y página desactivada devuelven ambos 0 filas (mismo
+  // observable, anti-enumeración) y el frontend muestra 404.
+  getPaginaHostal: (slug) => supabase.rpc('get_pagina_hostal', { p_slug: slug }),
+
   // Habitaciones privadas de un albergue, con estado (libre/ocupada) para la
   // fecha indicada. RPC de la migración 022 (pendiente de aplicar en prod).
   getRoomsByHostalSlug: (slug, date) =>

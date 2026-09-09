@@ -36,6 +36,11 @@ export function mapHostel(dbHostal, totalBeds) {
     basePrice: dbHostal.base_price,
     modoDirecto: dbHostal.modo_directo,
     autoSendSurvey: dbHostal.auto_send_survey ?? true,
+    descripcionLarga: dbHostal.descripcion_larga || '',
+    fotos: dbHostal.fotos || [],
+    colorAcento: dbHostal.color_acento || 'ocre',
+    plantilla: dbHostal.plantilla || null,
+    paginaWebActiva: dbHostal.pagina_web_activa ?? false,
     capacity: totalBeds,
     rating: 0,
   };

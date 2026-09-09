@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
@@ -10,6 +10,8 @@ import Modal from '../components/Modal';
 import Input from '../components/Input';
 import Select from '../components/Select';
 import Toggle from '../components/Toggle';
+import { PALETA_OPCIONES } from '../utils/paleta';
+import { hostalesService } from '../services/hostalesService';
 
 const ROLE_OPTIONS = [
   { value: 'Director', label: 'Director' },
@@ -114,6 +116,62 @@ export default function Configuracion() {
   const [radius, setRadius] = useState(150);
   const [addEmployeeOpen, setAddEmployeeOpen] = useState(false);
 
+  // Página web pública (/sitio/:slug) — migración 023/025. Un formulario más,
+  // nada de editor visual. La subida de fotos va al bucket hostales-fotos.
+  const hostalId = session?.hostelRaw?.id;
+  const [paginaForm, setPaginaForm] = useState({
+    descripcionLarga: session?.hostel?.descripcionLarga || '',
+    colorAcento: session?.hostel?.colorAcento || 'ocre',
+    fotos: session?.hostel?.fotos || [],
+  });
+  const [uploadingFoto, setUploadingFoto] = useState(false);
+
+  useEffect(() => {
+    if (session?.hostel) {
+      setPaginaForm({
+        descripcionLarga: session.hostel.descripcionLarga || '',
+        colorAcento: session.hostel.colorAcento || 'ocre',
+        fotos: session.hostel.fotos || [],
+      });
+    }
+    // Solo al cargar el hostal; las ediciones locales no deben pisarse.
+  }, [session?.hostel?.id]);
+
+  const handleSavePagina = async (e) => {
+    e.preventDefault();
+    await updateHostelInfo({
+      descripcionLarga: paginaForm.descripcionLarga,
+      colorAcento: paginaForm.colorAcento,
+      fotos: paginaForm.fotos,
+    });
+    showToast('Página web actualizada');
+  };
+
+  const handleUploadFoto = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !hostalId) return;
+    setUploadingFoto(true);
+    const { publicUrl, error } = await hostalesService.uploadFoto(hostalId, file);
+    setUploadingFoto(false);
+    if (error) {
+      showToast('No se pudo subir la foto', 'error');
+      return;
+    }
+    const fotos = [...paginaForm.fotos, publicUrl];
+    setPaginaForm((prev) => ({ ...prev, fotos }));
+    await updateHostelInfo({ fotos });
+    showToast('Foto añadida');
+  };
+
+  const handleDeleteFoto = async (url) => {
+    const fotos = paginaForm.fotos.filter((f) => f !== url);
+    setPaginaForm((prev) => ({ ...prev, fotos }));
+    await updateHostelInfo({ fotos });
+    hostalesService.deleteFoto(url);
+    showToast('Foto eliminada');
+  };
+
   const handleSaveHostel = async (e) => {
     e.preventDefault();
     await updateHostelInfo(hostelForm);
@@ -170,6 +228,91 @@ export default function Configuracion() {
             />
             <Button type="submit" data-testid="hostel-settings-save-button">
               Guardar cambios
+            </Button>
+          </form>
+        </Card>
+
+        <Card data-testid="pagina-web-card">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-slate-900">Página web pública</h2>
+            <Toggle
+              checked={session?.hostel?.paginaWebActiva ?? false}
+              onChange={(value) => updateHostelInfo({ paginaWebActiva: value })}
+              testId="pagina-web-activa-toggle"
+              label="Página web activa"
+            />
+          </div>
+          <p className="text-sm text-slate-600 mb-4">
+            Cuando está activa, tu albergue tiene página propia visible para cualquiera con el enlace.
+            {session?.hostel?.paginaWebActiva && session?.hostel?.slug && (
+              <>
+                {' '}
+                <a
+                  href={`/sitio/${session.hostel.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="pagina-web-ver-link"
+                  className="text-blue-600 font-medium hover:text-blue-700"
+                >
+                  Ver página →
+                </a>
+              </>
+            )}
+          </p>
+          <form onSubmit={handleSavePagina} className="flex flex-col gap-4" data-testid="pagina-web-form">
+            <div>
+              <label htmlFor="pagina-web-descripcion" className="block text-sm font-medium text-slate-900 mb-1.5">
+                Descripción
+              </label>
+              <textarea
+                id="pagina-web-descripcion"
+                rows={4}
+                value={paginaForm.descripcionLarga}
+                onChange={(e) => setPaginaForm((prev) => ({ ...prev, descripcionLarga: e.target.value }))}
+                data-testid="pagina-web-descripcion-input"
+                className="w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                placeholder="Cómo es tu albergue, a qué distancia está del Camino, qué ofrece..."
+              />
+            </div>
+            <Select
+              label="Color de acento"
+              value={paginaForm.colorAcento}
+              onChange={(e) => setPaginaForm((prev) => ({ ...prev, colorAcento: e.target.value }))}
+              options={PALETA_OPCIONES}
+              data-testid="pagina-web-color-select"
+            />
+            <div>
+              <p className="text-sm font-medium text-slate-900 mb-2">Fotos</p>
+              {paginaForm.fotos.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  {paginaForm.fotos.map((url, i) => (
+                    <div key={url} className="relative" data-testid={`pagina-web-foto-${i}`}>
+                      <img src={url} alt={`Foto ${i + 1}`} className="w-full h-20 object-cover rounded-md" />
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteFoto(url)}
+                        data-testid={`pagina-web-foto-delete-${i}`}
+                        aria-label={`Eliminar foto ${i + 1}`}
+                        className="absolute top-1 right-1 bg-white/90 text-red-600 rounded-full w-6 h-6 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-red-500"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <input
+                id="pagina-web-foto-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleUploadFoto}
+                data-testid="pagina-web-foto-upload-input"
+                className="text-sm text-slate-600"
+                disabled={uploadingFoto}
+              />
+            </div>
+            <Button type="submit" data-testid="pagina-web-save-button">
+              Guardar página web
             </Button>
           </form>
         </Card>
