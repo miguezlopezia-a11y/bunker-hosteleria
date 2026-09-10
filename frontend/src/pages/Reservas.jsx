@@ -26,7 +26,7 @@ const ORIGIN_OPTIONS = [
 ];
 
 function NewReservationModal({ isOpen, onClose }) {
-  const { addReservation, beds } = useApp();
+  const { addReservation, beds, rooms } = useApp();
   const { showToast } = useToast();
   const [form, setForm] = useState({
     guestName: '',
@@ -39,12 +39,30 @@ function NewReservationModal({ isOpen, onClose }) {
   });
   const [errors, setErrors] = useState({});
 
-  const bedOptions = beds.map((b) => ({ value: b.id, label: `Cama ${b.id}` }));
+  // El selector mezcla camas (value "bed:<label>") y habitaciones privadas
+  // (value "room:<uuid>"); addReservation distingue el flujo por roomDbId.
+  const privateRooms = rooms.filter((r) => r.tipo === 'privada');
+  const unitOptions = [
+    ...beds.map((b) => ({ value: `bed:${b.id}`, label: `Cama ${b.id}` })),
+    ...privateRooms.map((r) => ({ value: `room:${r._dbId}`, label: `Habitación ${r.name} (privada)` })),
+  ];
 
   const handleChange = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const roomDbId = form.bed.startsWith('room:') ? form.bed.slice(5) : null;
+    const bedLabel = form.bed.startsWith('bed:') ? form.bed.slice(4) : '';
+    const selectedRoom = roomDbId ? privateRooms.find((r) => r._dbId === roomDbId) : null;
+
+    // Precio por defecto de una habitación privada: tarifa/noche × noches,
+    // solo si el campo precio se dejó vacío.
+    let price = Number(form.price);
+    if ((!form.price || price <= 0) && selectedRoom?.pricePerNight != null && form.checkin && form.checkout) {
+      const nights = Math.round((new Date(form.checkout) - new Date(form.checkin)) / 86400000);
+      if (nights > 0) price = selectedRoom.pricePerNight * nights;
+    }
+
     const newErrors = {};
     if (!form.guestName) newErrors.guestName = 'Campo obligatorio';
     if (!form.checkin) newErrors.checkin = 'Campo obligatorio';
@@ -53,7 +71,7 @@ function NewReservationModal({ isOpen, onClose }) {
       newErrors.checkout = 'La fecha de salida debe ser posterior a la de entrada';
     }
     if (!form.bed) newErrors.bed = 'Campo obligatorio';
-    if (!form.price || Number(form.price) <= 0) newErrors.price = 'El precio debe ser mayor que 0';
+    if (!price || price <= 0) newErrors.price = 'El precio debe ser mayor que 0';
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
@@ -62,9 +80,10 @@ function NewReservationModal({ isOpen, onClose }) {
       email: form.email,
       checkin: new Date(form.checkin),
       checkout: new Date(form.checkout),
-      bed: form.bed,
-      room: Number(form.bed.charAt(0)),
-      price: Number(form.price),
+      ...(roomDbId
+        ? { roomDbId }
+        : { bed: bedLabel, room: Number(bedLabel.charAt(0)) }),
+      price,
       origin: form.origin,
       nationality: '',
     });
@@ -124,8 +143,8 @@ function NewReservationModal({ isOpen, onClose }) {
           required
           value={form.bed}
           onChange={handleChange('bed')}
-          options={bedOptions}
-          placeholder="Selecciona una cama"
+          options={unitOptions}
+          placeholder="Selecciona una cama o habitación"
           error={errors.bed}
           data-testid="new-reservation-bed-select"
         />
@@ -173,7 +192,7 @@ function ReservationsList({ reservations, navigate, onCancel }) {
               <Badge variant={r.origin}>{r.origin}</Badge>
             </div>
             <p className="text-xs text-slate-400">
-              {formatDate(r.checkin)} — {formatDate(r.checkout)} · Cama {r.bed}
+              {formatDate(r.checkin)} — {formatDate(r.checkout)} · {r.roomName ? `Habitación ${r.roomName}` : `Cama ${r.bed}`}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -213,7 +232,11 @@ function CalendarCellModal({ cell, onClose }) {
         <p><span className="font-medium text-slate-900">Huésped: </span>{personName}</p>
         <p><span className="font-medium text-slate-900">Nacionalidad: </span>{nationality}</p>
         <p><span className="font-medium text-slate-900">Fechas: </span>{formatDate(checkin)} — {formatDate(checkout)}</p>
-        <p><span className="font-medium text-slate-900">Cama: </span>{cell.bed.id}</p>
+        {person.roomName ? (
+          <p><span className="font-medium text-slate-900">Habitación: </span>{person.roomName}</p>
+        ) : (
+          <p><span className="font-medium text-slate-900">Cama: </span>{cell.bed.id}</p>
+        )}
       </div>
     </Modal>
   );

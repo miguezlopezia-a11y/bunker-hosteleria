@@ -171,6 +171,9 @@ export function AppProvider({ children }) {
 
       const roomIndexMap = buildRoomIndexMap(dbRooms);
       const roomDbIdMap = new Map(dbRooms.map((r) => [r.id, roomIndexMap.get(r.id)]));
+      const roomInfoByDbId = new Map(
+        dbRooms.map((r) => [r.id, { index: roomIndexMap.get(r.id), name: r.name }])
+      );
       const bedLabelMap = buildBedLabelMap(dbBeds);
       const activeGuestBedMap = buildActiveGuestBedMap(dbGuests);
       const employeeNameMap = new Map((dbHostaleros || []).map((h) => [h.id, h.nombre || h.email]));
@@ -182,8 +185,10 @@ export function AppProvider({ children }) {
         const roomIndex = roomIndexMap.get(bed.room_id);
         return mapBed(bed, roomIndex, activeGuestBedMap.get(bed.id));
       });
-      const reservations = dbReservations.map((r) => mapReservation(r, roomIndexMap, bedLabelMap));
-      const guests = dbGuests.map((g) => mapGuest(g, bedLabelMap));
+      const reservations = dbReservations.map((r) =>
+        mapReservation(r, roomIndexMap, bedLabelMap, roomInfoByDbId)
+      );
+      const guests = dbGuests.map((g) => mapGuest(g, bedLabelMap, roomInfoByDbId));
       const employees = buildEmployeeState(dbHostaleros || [], dbFichajes || []);
       const tasks = (dbTasks || []).map((t) => mapTask(t, roomDbIdMap, employeeNameMap));
       const notifications = (dbNotifications || []).map(mapNotification);
@@ -346,15 +351,28 @@ export function AppProvider({ children }) {
     const hostalId = state.session?.hostelRaw?.id;
     if (!hostalId) return { error: 'No hay sesión' };
 
-    const bedIdByLabel = buildBedIdByLabelMap(
-      state.beds.map((b) => ({ label: b.id, id: b._dbId }))
-    );
-    const bedId = bedIdByLabel.get(reservation.bed);
-    if (!bedId) return { error: 'Cama no válida' };
+    let bedId = null;
+    let roomId = null;
+    let room = null;
+    if (reservation.roomDbId) {
+      // Reserva de habitación privada: unidad = room_id, sin cama
+      room = state.rooms.find((r) => r._dbId === reservation.roomDbId);
+      if (!room || room.tipo !== 'privada') return { error: 'Habitación no válida' };
+      roomId = room._dbId;
+    } else {
+      const bedIdByLabel = buildBedIdByLabelMap(
+        state.beds.map((b) => ({ label: b.id, id: b._dbId }))
+      );
+      bedId = bedIdByLabel.get(reservation.bed);
+      if (!bedId) return { error: 'Cama no válida' };
+    }
 
-    const input = toReservationInput(reservation, hostalId, bedId);
+    const input = toReservationInput(reservation, hostalId, bedId, roomId);
     const { data: created, error } = await reservationsService.create(input);
-    if (error) return { error: 'No se pudo crear la reserva' };
+    if (error) {
+      const detalle = [error.message, error.details, error.hint].filter(Boolean).join(' — ');
+      return { error: `No se pudo crear la reserva: ${detalle || 'error desconocido'}` };
+    }
 
     const dbReservation = Array.isArray(created) ? created[0] : created;
     if (dbReservation?.guest_email) {
@@ -367,7 +385,7 @@ export function AppProvider({ children }) {
             hostalName: state.session?.hostel?.name || 'BunkerHostal',
             checkin: dbReservation.checkin,
             checkout: dbReservation.checkout,
-            bedLabel: reservation.bed,
+            bedLabel: room ? `Habitación ${room.name}` : reservation.bed,
           },
           hostal_id: hostalId,
         });
@@ -379,7 +397,7 @@ export function AppProvider({ children }) {
 
     await loadCoreData(hostalId);
     return { error: null };
-  }, [loadCoreData, state.session, state.beds]);
+  }, [loadCoreData, state.session, state.beds, state.rooms]);
 
   const checkInReservation = useCallback(async (reservationId, guestDetails) => {
     const hostalId = state.session?.hostelRaw?.id;
@@ -401,14 +419,22 @@ export function AppProvider({ children }) {
       },
       hostalId,
       dbReservation.id,
-      dbReservation.bed_id
+      dbReservation.bed_id,
+      dbReservation.room_id
     );
 
     const { error: guestError } = await guestsService.create(guestInput);
     if (guestError) return { error: `No se pudo registrar el huésped: ${guestError.message}` };
 
-    const { error: bedError } = await bedsService.update(dbReservation.bed_id, { status: 'occupied' });
-    if (bedError) return { error: `No se pudo ocupar la cama: ${bedError.message}` };
+    // Ocupar la unidad: cama (beds.status) o habitación privada
+    // (rooms.occupancy_status, solo tipo='privada' — nunca dormitorios)
+    if (dbReservation.bed_id) {
+      const { error: bedError } = await bedsService.update(dbReservation.bed_id, { status: 'occupied' });
+      if (bedError) return { error: `No se pudo ocupar la cama: ${bedError.message}` };
+    } else if (dbReservation.room_id) {
+      const { error: roomError } = await roomsService.update(dbReservation.room_id, { occupancy_status: 'occupied' });
+      if (roomError) return { error: `No se pudo ocupar la habitación: ${roomError.message}` };
+    }
 
     await loadCoreData(hostalId);
     return { error: null };
@@ -493,12 +519,16 @@ export function AppProvider({ children }) {
     );
     const bedId = bedIdByLabel.get(guest.bedId);
 
-    const { error: guestError } = await guestsService.update(guestId, { bed_id: null });
+    const { error: guestError } = await guestsService.update(guestId, { bed_id: null, room_id: null });
     if (guestError) return { error: 'No se pudo actualizar el huésped' };
 
     if (bedId) {
       const { error: bedError } = await bedsService.update(bedId, { status: 'free' });
       if (bedError) return { error: 'No se pudo liberar la cama' };
+    } else if (dbGuest.room_id) {
+      // Huésped de habitación privada: liberar su occupancy_status
+      const { error: roomError } = await roomsService.update(dbGuest.room_id, { occupancy_status: 'free' });
+      if (roomError) return { error: 'No se pudo liberar la habitación' };
     }
 
     let surveyUrl = null;

@@ -110,7 +110,10 @@ export default function Limpieza() {
                 <Card key={r.id} data-testid={`room-card-${r.id}`}>
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-semibold text-slate-900">
-                      {r.name} · Camas {r.beds[0]}–{r.beds[r.beds.length - 1]}
+                      {r.name}
+                      {r.beds.length > 0
+                        ? ` · Camas ${r.beds[0]}–${r.beds[r.beds.length - 1]}`
+                        : ' · Habitación privada'}
                     </p>
                     <Badge variant={r.status}>{STATUS_LABELS[r.status]}</Badge>
                   </div>

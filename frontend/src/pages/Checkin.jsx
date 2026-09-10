@@ -355,7 +355,9 @@ export default function Checkin() {
               <path d="m8 12 3 3 5-6" />
             </svg>
             <p className="text-lg font-semibold text-slate-900">
-              Check-in completado · Cama {reservation.bed} asignada
+              {reservation.roomName
+                ? `Check-in completado · Habitación ${reservation.roomName} asignada`
+                : `Check-in completado · Cama ${reservation.bed} asignada`}
             </p>
             {peregrinoUrl && (
               <div className="mt-5 flex flex-col items-center gap-2" data-testid="checkin-qr">
@@ -383,7 +385,11 @@ export default function Checkin() {
     <ManagerLayout>
       <div className="p-4 md:p-8 max-w-lg mx-auto" data-testid="checkin-page">
         <h1 className="text-2xl font-bold text-slate-900 mb-1">Check-in · {reservation.guestName}</h1>
-        <p className="text-sm text-slate-400 mb-4">Cama asignada: {reservation.bed}</p>
+        <p className="text-sm text-slate-400 mb-4">
+          {reservation.roomName
+            ? `Habitación asignada: ${reservation.roomName}`
+            : `Cama asignada: ${reservation.bed}`}
+        </p>
         <ProgressBar percentage={(step / 3) * 100} />
 
         {step === 1 && (

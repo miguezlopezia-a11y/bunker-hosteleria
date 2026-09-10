@@ -46,6 +46,9 @@ export function mapRoom(dbRoom, index, bedsInRoom) {
     id: index,
     _dbId: dbRoom.id,
     name: dbRoom.name,
+    tipo: dbRoom.tipo || 'dormitorio',
+    pricePerNight: dbRoom.price_per_night != null ? Number(dbRoom.price_per_night) : null,
+    occupancyStatus: dbRoom.occupancy_status || 'free',
     capacity: dbRoom.capacity,
     beds: bedsInRoom.map((bed) => bed.label),
     status: 'clean',
@@ -64,10 +67,11 @@ export function mapBed(dbBed, roomIndex, activeGuestId) {
   };
 }
 
-export function mapReservation(dbReservation, roomIndexMap, bedLabelMap) {
-  const roomId = dbReservation.bed_id ? null : null; // se resuelve externamente
+export function mapReservation(dbReservation, roomIndexMap, bedLabelMap, roomInfoByDbId = new Map()) {
   const bedLabel = bedLabelMap.get(dbReservation.bed_id) || null;
   const roomIndex = bedLabel && bedLabel.length ? roomIndexFromBedLabel(bedLabel, roomIndexMap) : null;
+  // Reserva de habitación privada: sin cama; la unidad es la room
+  const roomInfo = dbReservation.room_id ? roomInfoByDbId.get(dbReservation.room_id) : null;
 
   return {
     id: dbReservation.id,
@@ -76,7 +80,8 @@ export function mapReservation(dbReservation, roomIndexMap, bedLabelMap) {
     checkin: dbReservation.checkin ? new Date(dbReservation.checkin) : null,
     checkout: dbReservation.checkout ? new Date(dbReservation.checkout) : null,
     bed: bedLabel,
-    room: roomIndex,
+    room: roomInfo ? roomInfo.index : roomIndex,
+    roomName: roomInfo ? roomInfo.name : null,
     price: Number(dbReservation.price),
     origin: dbReservation.channel,
     status: dbReservation.status,
@@ -86,8 +91,9 @@ export function mapReservation(dbReservation, roomIndexMap, bedLabelMap) {
   };
 }
 
-export function mapGuest(dbGuest, bedLabelMap) {
+export function mapGuest(dbGuest, bedLabelMap, roomInfoByDbId = new Map()) {
   const bedLabel = bedLabelMap.get(dbGuest.bed_id) || null;
+  const roomInfo = dbGuest.room_id ? roomInfoByDbId.get(dbGuest.room_id) : null;
   return {
     id: dbGuest.id,
     name: dbGuest.name,
@@ -97,6 +103,7 @@ export function mapGuest(dbGuest, bedLabelMap) {
     phone: dbGuest.phone || '',
     email: dbGuest.email || '',
     bedId: bedLabel,
+    roomName: roomInfo ? roomInfo.name : null,
     checkin: dbGuest.checkin ? new Date(dbGuest.checkin) : null,
     checkout: dbGuest.checkout ? new Date(dbGuest.checkout) : null,
     price: Number(dbGuest.price),
@@ -121,16 +128,16 @@ export function toDateString(date) {
   return `${year}-${month}-${day}`;
 }
 
-export function toReservationInput(frontendReservation, hostalId, bedId) {
+export function toReservationInput(frontendReservation, hostalId, bedId, roomId = null) {
+  // guest_phone/estimated_time no existen en reservations (sonda 400) — no se envían
   return {
     hostal_id: hostalId,
-    bed_id: bedId,
+    bed_id: bedId || null,
+    room_id: roomId || null,
     guest_name: frontendReservation.guestName,
     guest_email: frontendReservation.email || null,
-    guest_phone: frontendReservation.phone || null,
     nationality: frontendReservation.nationality || null,
     channel: frontendReservation.origin || 'directo',
-    estimated_time: frontendReservation.estimatedTime || null,
     checkin: toDateString(frontendReservation.checkin),
     checkout: toDateString(frontendReservation.checkout),
     price: frontendReservation.price,
@@ -229,11 +236,12 @@ export function mapLoyaltyMember(dbMember) {
   };
 }
 
-export function toGuestInput(frontendGuest, hostalId, reservationId, bedId) {
+export function toGuestInput(frontendGuest, hostalId, reservationId, bedId, roomId = null) {
   return {
     hostal_id: hostalId,
     reservation_id: reservationId,
-    bed_id: bedId,
+    bed_id: bedId || null,
+    room_id: roomId || null,
     name: frontendGuest.name,
     email: frontendGuest.email || null,
     document: frontendGuest.document || null,

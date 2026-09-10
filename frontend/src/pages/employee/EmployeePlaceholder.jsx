@@ -106,7 +106,12 @@ function TaskCard({ task }) {
                 <path d="m8 12 3 3 5-6" />
               </svg>
             )}
-            {room?.name} · Camas {room?.beds?.[0]}–{room?.beds?.[room.beds.length - 1]}
+            {room?.name}
+            {room?.beds?.length
+              ? ` · Camas ${room.beds[0]}–${room.beds[room.beds.length - 1]}`
+              : room
+              ? ' · Habitación privada'
+              : ' · Camas –'}
           </p>
           <Badge variant={task.priority} className="mt-1">
             {PRIORITY_LABELS[task.priority]}
