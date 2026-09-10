@@ -52,7 +52,7 @@ El acceso es con **email y contraseña reales** (Supabase Auth). No hay PINs ni 
 
 ## Seguridad
 
-- Security Advisor de Supabase (2026-09-01): vista `maia_red_camino` (fuga real, ver `migrations/012`) y grants `EXECUTE` internos (`migrations/013`) corregidos. Pendiente sin resolver: "Prevent use of leaked passwords" en Auth requiere plan Pro o superior de Supabase, no disponible en el plan actual.
+El estado de seguridad vive en `shared/auditoria-seguridad-hosteleria.md` (auditoría exhaustiva 2026-09-10, fuente única — no mantener una sección separada aquí). Resumen: 2 CRÍTICO (bucket `firmas` público; service role legacy sin rotar), 5 ALTO (precio manipulable en reserva pública, reservas sin captcha/idempotencia, gotcha PUBLIC/EXECUTE — la 013 era inefectiva, relay de email sin auth, deriva producción↔repo), 4 MEDIO, 4 BAJO. Ningún fix aplicado todavía. Pendiente conocido y confirmado: "Prevent use of leaked passwords" en Auth requiere plan Pro o superior de Supabase.
 
 ## Bloqueante para beta con hostaleros reales
 
