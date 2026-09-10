@@ -369,7 +369,10 @@ export function AppProvider({ children }) {
 
     const input = toReservationInput(reservation, hostalId, bedId, roomId);
     const { data: created, error } = await reservationsService.create(input);
-    if (error) return { error: 'No se pudo crear la reserva' };
+    if (error) {
+      const detalle = [error.message, error.details, error.hint].filter(Boolean).join(' — ');
+      return { error: `No se pudo crear la reserva: ${detalle || 'error desconocido'}` };
+    }
 
     const dbReservation = Array.isArray(created) ? created[0] : created;
     if (dbReservation?.guest_email) {

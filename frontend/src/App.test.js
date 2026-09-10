@@ -7,6 +7,7 @@ import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { Routes, Route } from 'react-router-dom';
 import { renderWithProviders } from './test-utils';
+import { useApp } from './context/AppContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -20,6 +21,9 @@ const MANAGER_ROLES = ['Director', 'Recepción'];
 // Estado del mock de auth (el prefijo mock* es obligatorio para que Jest
 // permita referenciarlo desde la factory de jest.mock).
 let mockSignedIn = false;
+// Cuando no es null, el insert en `reservations` falla con este error
+// (simula un rechazo real de PostgREST: constraint, RLS, etc.).
+let mockReservationsInsertError = null;
 
 jest.mock('./lib/supabase', () => {
   const HOSTALERO = {
@@ -32,6 +36,8 @@ jest.mock('./lib/supabase', () => {
   const FIXTURES = {
     hostaleros: [HOSTALERO],
     hostales: [HOSTAL],
+    rooms: [{ id: 'r1', hostal_id: 'h1', name: 'Dormitorio 1', capacity: 4 }],
+    beds: [{ id: 'b1', hostal_id: 'h1', room_id: 'r1', label: '1A', status: 'free' }],
     loyalty_members: Array.from({ length: 5 }, (_, i) => ({
       id: `lm${i}`, hostal_id: 'h1', name: `Peregrino ${i}`, email: '',
       points: 100 - i * 10, routes_completed: i, last_camino: 'Francés',
@@ -46,6 +52,7 @@ jest.mock('./lib/supabase', () => {
 
   const chain = (table) => {
     const rows = FIXTURES[table] ?? [];
+    let isInsert = false;
     const builder = {
       select: () => builder,
       eq: () => builder,
@@ -54,12 +61,16 @@ jest.mock('./lib/supabase', () => {
       in: () => builder,
       order: () => builder,
       limit: () => builder,
-      insert: () => builder,
+      insert: () => { isInsert = true; return builder; },
       update: () => builder,
       upsert: () => builder,
       delete: () => builder,
       single: () => makeThenable({ data: rows[0] ?? null, error: null }),
-      then: (resolve) => Promise.resolve({ data: rows, error: null }).then(resolve),
+      then: (resolve) => Promise.resolve(
+        isInsert && table === 'reservations' && mockReservationsInsertError
+          ? { data: null, error: mockReservationsInsertError }
+          : { data: rows, error: null }
+      ).then(resolve),
     };
     return builder;
   };
@@ -100,6 +111,7 @@ jest.mock('./lib/supabase', () => {
 
 beforeEach(() => {
   mockSignedIn = false;
+  mockReservationsInsertError = null;
 });
 
 // ---------------------------------------------------------------------------
@@ -188,4 +200,49 @@ test('Directorio muestra albergues', async () => {
     expect(screen.getByTestId('directorio-hostel-card-albergue-demo-norte')).toBeInTheDocument()
   );
   expect(screen.getByTestId('directorio-hostel-list')).toBeInTheDocument();
+});
+
+// Bug reportado por Pablo (2026-09-10): addReservation descartaba el error
+// real de reservationsService.create y mostraba un texto fijo. El mensaje
+// debe decir POR QUÉ falló (constraint, solape, etc.), no solo que falló.
+test('addReservation propaga el error real del servicio cuando el insert falla', async () => {
+  mockSignedIn = true;
+  mockReservationsInsertError = {
+    message: 'new row for relation "reservations" violates check constraint "reservations_exactly_one_unit"',
+    code: '23514',
+  };
+
+  function Probe() {
+    const { addReservation, beds } = useApp();
+    const [resultado, setResultado] = React.useState('');
+    return (
+      <div>
+        <div data-testid="probe-beds">{beds.length}</div>
+        <button
+          data-testid="probe-submit"
+          onClick={async () => {
+            const { error } = await addReservation({
+              guestName: 'Test Error', email: '', nationality: '',
+              checkin: new Date('2026-10-01'), checkout: new Date('2026-10-02'),
+              bed: '1A', price: 15,
+            });
+            setResultado(error || 'sin error');
+          }}
+        >
+          crear
+        </button>
+        <div data-testid="probe-error">{resultado}</div>
+      </div>
+    );
+  }
+
+  renderWithProviders(<Probe />);
+  // Espera a que loadCoreData cargue la cama del fixture (sesión activa)
+  await waitFor(() => expect(screen.getByTestId('probe-beds')).toHaveTextContent('1'), { timeout: 5000 });
+  fireEvent.click(screen.getByTestId('probe-submit'));
+
+  await waitFor(() =>
+    expect(screen.getByTestId('probe-error')).toHaveTextContent('reservations_exactly_one_unit')
+  );
+  expect(screen.getByTestId('probe-error')).toHaveTextContent('No se pudo crear la reserva:');
 });
