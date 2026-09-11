@@ -1,15 +1,21 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { Resend } from 'npm:resend@^2.0.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  buildEmail,
+  corsHeadersFor,
+  isValidEmail,
+  recipientExists,
+} from './utils.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// A-4/M-1 (auditoría 2026-09-10): variables escapadas y URLs validadas en
+// utils.buildEmail; destinatario validado contra una reserva/huésped/reseña
+// real del hostal; CORS restringido a orígenes conocidos (nunca '*').
+export async function handler(req: Request): Promise<Response> {
+  const cors = corsHeadersFor(req.headers.get('Origin'));
 
-serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: cors });
   }
 
   const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
@@ -22,14 +28,14 @@ serve(async (req) => {
   const { to, template, variables, hostal_id } = await req.json();
 
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader) return new Response('Unauthorized', { status: 401 });
+  if (!authHeader) return new Response('Unauthorized', { status: 401, headers: cors });
 
   const callerToken = authHeader.replace('Bearer ', '');
   const isServiceCall = callerToken === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
   if (!isServiceCall) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(callerToken);
-    if (authError || !user) return new Response('Unauthorized', { status: 401 });
+    if (authError || !user) return new Response('Unauthorized', { status: 401, headers: cors });
 
     const { data: hostalero } = await supabaseAdmin
       .from('hostaleros')
@@ -38,54 +44,56 @@ serve(async (req) => {
       .single();
 
     if (!hostalero || hostalero.hostal_id !== hostal_id) {
-      return new Response('Forbidden', { status: 403 });
+      return new Response('Forbidden', { status: 403, headers: cors });
     }
   }
 
-  let subject, html;
+  if (!isValidEmail(to) || !hostal_id) {
+    return new Response(JSON.stringify({ error: 'invalid_request' }), {
+      headers: { ...cors, 'Content-Type': 'application/json' },
+      status: 400,
+    });
+  }
 
-  if (template === 'booking_confirmation') {
-    subject = `Reserva confirmada — ${variables.hostalName}`;
-    // checkinUrl es opcional (compat con llamantes previos a la 021).
-    const checkinLink = variables.checkinUrl
-      ? '<p>Puedes hacer tu check-in online y ahorrar tiempo a la llegada:</p>' +
-        '<p><a href="' + variables.checkinUrl + '">Hacer mi check-in online</a></p>'
-      : '';
-    html = `<p>Hola ${variables.guestName},</p>
-            <p>Tu reserva en <strong>${variables.hostalName}</strong> está confirmada.</p>
-            <p>Entrada: ${variables.checkin} · Salida: ${variables.checkout} · Cama: ${variables.bedLabel}</p>
-            ${checkinLink}`;
-  } else if (template === 'checkin_otp') {
-    subject = `Tu código de check-in — ${variables.hostalName}`;
-    html = `<p>Hola ${variables.guestName},</p>
-            <p>Tu código para completar el check-in online en <strong>${variables.hostalName}</strong> es:</p>
-            <p style="font-size:24px;font-weight:bold;letter-spacing:4px;">${variables.codigo}</p>
-            <p>Caduca en 10 minutos. Si no has pedido este código, ignora este correo.</p>`;
-  } else if (template === 'survey') {
-    subject = `¿Cómo fue tu estancia en ${variables.hostalName}?`;
-    html = `<p>Hola ${variables.guestName},</p>
-            <p>¿Nos dejas tu valoración? Solo 10 segundos:</p>
-            <p><a href="${variables.surveyUrl}">Valorar mi estancia</a></p>`;
-  } else {
-    return new Response('Unknown template', { status: 400 });
+  const email = buildEmail(template, variables);
+  if (!email) {
+    return new Response(JSON.stringify({ error: 'unknown_template' }), {
+      headers: { ...cors, 'Content-Type': 'application/json' },
+      status: 400,
+    });
+  }
+
+  // A-4: relay cerrado — el destinatario debe ser real para este hostal,
+  // también en la rama service role (la invoca create_public_booking con
+  // datos que vienen del anon).
+  if (!(await recipientExists(supabaseAdmin, hostal_id, to))) {
+    return new Response(JSON.stringify({ error: 'unknown_recipient' }), {
+      headers: { ...cors, 'Content-Type': 'application/json' },
+      status: 403,
+    });
   }
 
   try {
     const result = await resend.emails.send({
       from: 'onboarding@resend.dev',
       to,
-      subject,
-      html,
+      subject: email.subject,
+      html: email.html,
     });
     return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...cors, 'Content-Type': 'application/json' },
       status: 200,
     });
   } catch (err) {
     console.error(err);
     return new Response(JSON.stringify({ error: 'email_failed' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...cors, 'Content-Type': 'application/json' },
       status: 500,
     });
   }
-});
+}
+
+// import.meta.main: los tests importan handler/utils sin levantar el servidor.
+if (import.meta.main) {
+  serve(handler);
+}
