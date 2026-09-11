@@ -1,5 +1,5 @@
 -- ============================================================
--- 024_blindaje_reserva_publica.sql
+-- 025_blindaje_reserva_publica.sql
 -- Auditoría seguridad 2026-09-10 — A-1 + A-2 (shared/auditoria-seguridad-hosteleria.md)
 --
 -- A-1: p_price venía del cliente sin validación (verificado: reservas anon con

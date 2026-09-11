@@ -79,7 +79,7 @@ export default function Web() {
 
   const availableBeds = beds.filter((b) => b.status === 'free');
 
-  // El servidor cobra base_price × noches (migración 024); el botón muestra
+  // El servidor cobra base_price × noches (migración 025); el botón muestra
   // ese mismo total para que lo que se ve sea lo que se cobra.
   const nights = Math.max(0, Math.round((new Date(checkout) - new Date(checkin)) / 86400000));
   const total = hostel && nights > 0 ? hostel.base_price * nights : null;

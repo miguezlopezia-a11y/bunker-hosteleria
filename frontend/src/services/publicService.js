@@ -17,7 +17,7 @@ export const publicService = {
     checkout,
   }) =>
     // Sin price/phone/document: el precio lo calcula el servidor
-    // (base_price × noches, migración 024) y teléfono/documento se recogen
+    // (base_price × noches, migración 025) y teléfono/documento se recogen
     // en el check-in real, no aquí.
     supabase.rpc('create_public_booking', {
       p_slug: slug,
