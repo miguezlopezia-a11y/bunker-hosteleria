@@ -2,7 +2,7 @@
 
 PMS ligero para albergues y hostales: panel de gestión, web pública de reservas directas, portal del empleado, asistente MaiA, marketplace de servicios y directorio de albergues.
 
-> **Estado:** Fase 3 completa. Frontend conectado a Supabase (auth y datos reales): fichaje (con exportación CSV real, admin y empleado), limpieza, reservas, camas, habitaciones, empleados, marketplace, fidelización, notificaciones y directorio público (`/directorio`, vía RPC `list_public_hostales` — requiere `migrations/006_list_public_hostales.sql` aplicada) son reales, sin mocks. Las alertas críticas y el chat de MaiA también son reales (Edge Functions `maia-critical-alert` y `maia-chat` desplegadas). El check-in es real end-to-end: el paso 2 verifica el documento vía skill-policia (OCR de zona MRZ) y el paso 3 genera y valida la firma digital vía skill-firma. **Siguen sin conectar:** pagos (Stripe — no hay pasarela integrada) y Channel Manager (Booking.com/Airbnb — solo estado local en la app; conectar canales reales requiere acuerdos de partner con cada plataforma, decisión de negocio pendiente).
+> **Estado y arquitectura:** la fuente única es `shared/biografia-tecnica-aloxate.md` (bunker-2026) — qué es real, qué es demo, qué está bloqueado y el inventario completo. Este README solo cubre el arranque del repo.
 
 ## Estructura del repo
 
@@ -50,13 +50,9 @@ El acceso es con **email y contraseña reales** (Supabase Auth). No hay PINs ni 
 - **PWA básica:** manifest + service worker + iconos PNG/SVG para cache offline de la shell.
 - **Tests:** smoke tests con React Testing Library.
 
-## Seguridad
+## Seguridad y bloqueantes
 
-- Security Advisor de Supabase (2026-09-01): vista `maia_red_camino` (fuga real, ver `migrations/012`) y grants `EXECUTE` internos (`migrations/013`) corregidos. Pendiente sin resolver: "Prevent use of leaked passwords" en Auth requiere plan Pro o superior de Supabase, no disponible en el plan actual.
-
-## Bloqueante para beta con hostaleros reales
-
-- **Email de reservas (`send-email`) usa `from: onboarding@resend.dev`** (remitente de pruebas de Resend) porque `bunkerhostal.com` no está verificado en Resend → Domains. Hay que verificar el dominio (registros DNS, ver docs de Resend) **antes** de la beta con los primeros hostaleros: con el remitente de pruebas, cualquier email a un huésped real que no sea la cuenta de Resend del proyecto puede ser rechazado o marcado como spam.
+- El estado de seguridad real (incluida la migración 013, que resultó **inefectiva**, y los hallazgos activos de la auditoría 2026-09-10) y los bloqueantes de beta (dominio/email/Resend, SES Hospedajes) están en `shared/biografia-tecnica-aloxate.md` §1/§10 y `shared/auditoria-seguridad-hosteleria.md`. No duplicar aquí: este README quedó desactualizado una vez por eso.
 
 ## Imagen de prueba para el escaneo de check-in (paso 2)
 
