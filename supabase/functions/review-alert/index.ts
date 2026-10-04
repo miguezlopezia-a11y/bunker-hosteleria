@@ -65,6 +65,19 @@ serve(async (req) => {
       });
     }
 
+    const dedupKey = `review-alert-${reviewReq.id}`;
+    const { data: existing } = await supabaseAdmin
+      .from('notifications')
+      .select('id')
+      .eq('dedup_key', dedupKey)
+      .maybeSingle();
+    if (existing) {
+      return new Response(JSON.stringify({ skipped: true, reason: 'already_notified' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
     const hostal = reviewReq.hostal;
     const message = `Reseña interna ${score}/5 de ${reviewReq.guest_name}${feedback ? ': ' + feedback : ''}`;
 
