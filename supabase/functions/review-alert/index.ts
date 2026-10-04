@@ -44,6 +44,12 @@ serve(async (req) => {
       status: 400,
     });
   }
+  if (!Number.isInteger(score) || score < 1 || score > 5) {
+    return new Response(JSON.stringify({ error: 'invalid_score' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400,
+    });
+  }
 
   try {
     const { data: reviewReq } = await supabaseAdmin
