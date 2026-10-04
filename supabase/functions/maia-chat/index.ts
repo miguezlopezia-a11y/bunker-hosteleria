@@ -1,7 +1,20 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { buildHostalContext, getMockAnswer, buildSystemPrompt } from '../_shared/maia.ts';
-import { corsHeadersFor } from '../_shared/cors.ts';
+
+const ALLOWED_ORIGINS = [
+  'https://pwa-hostaleria.miguezlopezia.workers.dev',
+  'https://bunkerhostal.com',
+  'http://localhost:3000',
+];
+
+function corsHeadersFor(origin: string | null): Record<string, string> {
+  const base = { 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    return { ...base, 'Access-Control-Allow-Origin': origin };
+  }
+  return base;
+}
 
 interface LLMConfig {
   provider: string;

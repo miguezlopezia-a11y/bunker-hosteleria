@@ -1,8 +1,28 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { Resend } from 'npm:resend@^2.0.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeadersFor } from '../_shared/cors.ts';
-import { escapeHtml } from '../_shared/html.ts';
+
+const ALLOWED_ORIGINS = [
+  'https://pwa-hostaleria.miguezlopezia.workers.dev',
+  'https://bunkerhostal.com',
+  'http://localhost:3000',
+];
+
+function corsHeadersFor(origin: string | null): Record<string, string> {
+  const base = { 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    return { ...base, 'Access-Control-Allow-Origin': origin };
+  }
+  return base;
+}
+
+const HTML_ENTITIES: Record<string, string> = {
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+};
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, (c) => HTML_ENTITIES[c]);
+}
 
 serve(async (req) => {
   const corsHeaders = corsHeadersFor(req.headers.get('Origin'));
