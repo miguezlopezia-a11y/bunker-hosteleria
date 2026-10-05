@@ -7,9 +7,53 @@
 // public.hostaleros con el hostal_id de la SESIÓN del Director (nunca de
 // metadata del invitado — cierre C-3). El invitado fija su contraseña desde
 // el email (mismo auth estándar: sirve para panel y fichaje).
+//
+// Archivo único (no utils.ts separado): el Dashboard de Supabase no permite
+// crear un segundo archivo en el editor de una función ya existente sin
+// arriesgar el mismo bloqueo que M-1 (orphaned functions, _shared/cors.ts no
+// deployable). utils.ts/utils.test.ts se mantienen solo para test local.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeadersFor, normalizeInvitePayload } from './utils.ts';
+
+const ALLOWED_ORIGINS = [
+  'https://pwa-hostaleria.miguezlopezia.workers.dev',
+  'https://bunkerhostal.com',
+  'http://localhost:3000',
+];
+
+const CORS_BASE = {
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+function corsHeadersFor(origin: string | null): Record<string, string> {
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    return { ...CORS_BASE, 'Access-Control-Allow-Origin': origin };
+  }
+  return { ...CORS_BASE };
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidEmail(value: unknown): boolean {
+  return typeof value === 'string' && value.length <= 254 && EMAIL_RE.test(value);
+}
+
+const INVITABLE_ROLES = ['Recepción', 'Empleado'];
+
+function normalizeInvitePayload(
+  body: unknown,
+): { ok: true; value: { email: string; nombre: string; rol: string } } | { ok: false; error: string } {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const email = typeof b.email === 'string' ? b.email.trim().toLowerCase() : '';
+  const nombre = typeof b.nombre === 'string' ? b.nombre.trim() : '';
+  const rol = typeof b.rol === 'string' ? b.rol.trim() : '';
+  if (!email || !nombre || !rol) return { ok: false, error: 'Datos incompletos' };
+  if (!isValidEmail(email)) return { ok: false, error: 'Email no válido' };
+  if (!INVITABLE_ROLES.includes(rol)) {
+    return { ok: false, error: 'Rol no invitable (solo Recepción o Empleado)' };
+  }
+  return { ok: true, value: { email, nombre, rol } };
+}
 
 Deno.serve(async (req) => {
   const cors = corsHeadersFor(req.headers.get('Origin'));
@@ -27,7 +71,6 @@ Deno.serve(async (req) => {
       throw new Error('Missing Supabase environment variables');
     }
 
-    // Sesión del caller: mismo patrón que send-email.
     const supabaseClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },
       auth: { persistSession: false },
@@ -42,8 +85,6 @@ Deno.serve(async (req) => {
       throw new Error('No autenticado');
     }
 
-    // El hostal_id sale de la fila del propio Director (RLS de su sesión),
-    // nunca de algo que mande el cliente.
     const { data: hostalero, error: hostaleroError } = await supabaseClient
       .from('hostaleros')
       .select('rol, hostal_id')
@@ -64,8 +105,6 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // inviteUserByEmail crea el usuario (sin confirmar) y envía el email para
-    // que el invitado fije su contraseña.
     const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
       email,
       { data: { nombre, rol } },
@@ -79,8 +118,6 @@ Deno.serve(async (req) => {
       throw new Error(msg);
     }
 
-    // Vinculación server-side. La FK hostaleros.id -> auth.users(id) se
-    // satisface porque inviteUserByEmail ya creó el usuario.
     const { error: linkError } = await adminClient.from('hostaleros').insert({
       id: invited.user.id,
       hostal_id: hostalero.hostal_id,
@@ -90,7 +127,6 @@ Deno.serve(async (req) => {
     });
 
     if (linkError) {
-      // Best-effort: sin fila de hostaleros la invitación quedaría huérfana.
       await adminClient.auth.admin.deleteUser(invited.user.id);
       throw new Error('No se pudo vincular el empleado a tu hostal');
     }
