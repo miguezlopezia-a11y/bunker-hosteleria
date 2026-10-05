@@ -694,6 +694,7 @@ export function AppProvider({ children }) {
     if (updates.descripcionLarga !== undefined) dbUpdates.descripcion_larga = updates.descripcionLarga;
     if (updates.fotos !== undefined) dbUpdates.fotos = updates.fotos;
     if (updates.colorAcento !== undefined) dbUpdates.color_acento = updates.colorAcento;
+    if (updates.plantilla !== undefined) dbUpdates.plantilla = updates.plantilla;
     if (updates.paginaWebActiva !== undefined) dbUpdates.pagina_web_activa = updates.paginaWebActiva;
 
     if (Object.keys(dbUpdates).length > 0) {
