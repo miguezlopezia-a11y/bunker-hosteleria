@@ -83,6 +83,12 @@ export default function Login() {
             Entrar
           </Button>
         </form>
+        <p className="text-sm text-slate-600 text-center mt-4">
+          ¿Tienes un albergue?{' '}
+          <a href="/alta" data-testid="login-alta-link" className="text-blue-600 font-medium hover:text-blue-700">
+            Date de alta aquí
+          </a>
+        </p>
       </Card>
     </div>
   );
