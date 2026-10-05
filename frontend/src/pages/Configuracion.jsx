@@ -132,11 +132,15 @@ export default function Configuracion() {
 
   const handleSavePagina = async (e) => {
     e.preventDefault();
-    await updateHostelInfo({
+    const { error } = await updateHostelInfo({
       descripcionLarga: paginaForm.descripcionLarga,
       colorAcento: paginaForm.colorAcento,
       fotos: paginaForm.fotos,
     });
+    if (error) {
+      showToast('No se pudieron guardar los cambios', 'error');
+      return;
+    }
     showToast('Página web actualizada');
   };
 
@@ -145,29 +149,41 @@ export default function Configuracion() {
     e.target.value = '';
     if (!file || !hostalId) return;
     setUploadingFoto(true);
-    const { publicUrl, error } = await hostalesService.uploadFoto(hostalId, file);
+    const { publicUrl, error: uploadError } = await hostalesService.uploadFoto(hostalId, file);
     setUploadingFoto(false);
-    if (error) {
+    if (uploadError) {
       showToast('No se pudo subir la foto', 'error');
       return;
     }
     const fotos = [...paginaForm.fotos, publicUrl];
     setPaginaForm((prev) => ({ ...prev, fotos }));
-    await updateHostelInfo({ fotos });
+    const { error } = await updateHostelInfo({ fotos });
+    if (error) {
+      showToast('No se pudieron guardar los cambios', 'error');
+      return;
+    }
     showToast('Foto añadida');
   };
 
   const handleDeleteFoto = async (url) => {
     const fotos = paginaForm.fotos.filter((f) => f !== url);
     setPaginaForm((prev) => ({ ...prev, fotos }));
-    await updateHostelInfo({ fotos });
+    const { error } = await updateHostelInfo({ fotos });
+    if (error) {
+      showToast('No se pudieron guardar los cambios', 'error');
+      return;
+    }
     hostalesService.deleteFoto(url);
     showToast('Foto eliminada');
   };
 
   const handleSaveHostel = async (e) => {
     e.preventDefault();
-    await updateHostelInfo(hostelForm);
+    const { error } = await updateHostelInfo(hostelForm);
+    if (error) {
+      showToast('No se pudieron guardar los cambios', 'error');
+      return;
+    }
     showToast('Datos del albergue actualizados');
   };
 

@@ -697,8 +697,11 @@ export function AppProvider({ children }) {
     if (updates.paginaWebActiva !== undefined) dbUpdates.pagina_web_activa = updates.paginaWebActiva;
 
     if (Object.keys(dbUpdates).length > 0) {
-      const { error } = await hostalesService.update(hostalId, dbUpdates);
-      if (error) return;
+      const { data, error } = await hostalesService.update(hostalId, dbUpdates);
+      if (error) return { error };
+      if (Array.isArray(data) && data.length === 0) {
+        return { error: new Error('0 filas actualizadas (RLS u hostal inexistente)') };
+      }
       await refreshSession();
     }
 
@@ -706,6 +709,7 @@ export function AppProvider({ children }) {
       ...prev,
       session: prev.session ? { ...prev.session, hostel: { ...prev.session.hostel, ...updates } } : prev.session,
     }));
+    return { error: null };
   }, [refreshSession, state.session]);
 
   const setModoDirecto = useCallback(

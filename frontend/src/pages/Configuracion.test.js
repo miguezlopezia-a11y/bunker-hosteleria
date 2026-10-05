@@ -10,6 +10,7 @@ import { renderWithProviders } from '../test-utils';
 import Configuracion from './Configuracion';
 
 let mockSignedIn = true;
+let mockHostalUpdateResult = null;
 const mockHostalUpdates = [];
 const mockStorageUploads = [];
 
@@ -35,7 +36,12 @@ jest.mock('../lib/supabase', () => {
       },
       upsert: () => builder, delete: () => builder,
       single: () => makeThenable({ data: rows[0] ?? null, error: null }),
-      then: (resolve) => Promise.resolve({ data: rows, error: null }).then(resolve),
+      then: (resolve) => {
+        const result = table === 'hostales' && mockHostalUpdateResult
+          ? mockHostalUpdateResult
+          : { data: rows, error: null };
+        return Promise.resolve(result).then(resolve);
+      },
     };
     return builder;
   };
@@ -68,6 +74,7 @@ jest.mock('../lib/supabase', () => {
 
 beforeEach(() => {
   mockSignedIn = true;
+  mockHostalUpdateResult = null;
   mockHostalUpdates.length = 0;
   mockStorageUploads.length = 0;
   localStorage.clear();
@@ -107,6 +114,42 @@ test('guardar persiste descripción, color y fotos vía update del hostal', asyn
         fotos: ['https://cdn.test/h1/fachada.jpg'],
       })
     )
+  );
+});
+
+test('guardar con error de Supabase muestra toast de error, no de éxito', async () => {
+  renderWithProviders(<Configuracion />);
+
+  await waitFor(() =>
+    expect(screen.getByTestId('pagina-web-descripcion-input')).toHaveValue('Descripción inicial')
+  );
+
+  mockHostalUpdateResult = { data: null, error: { message: 'permission denied' } };
+  fireEvent.change(screen.getByTestId('pagina-web-descripcion-input'), {
+    target: { value: 'Otra descripción' },
+  });
+  fireEvent.click(screen.getByTestId('pagina-web-save-button'));
+
+  await waitFor(() =>
+    expect(screen.getByTestId('toast-notification')).toHaveTextContent('No se pudieron guardar los cambios')
+  );
+});
+
+test('guardar con 0 filas afectadas (RLS) muestra toast de error, no de éxito', async () => {
+  renderWithProviders(<Configuracion />);
+
+  await waitFor(() =>
+    expect(screen.getByTestId('pagina-web-descripcion-input')).toHaveValue('Descripción inicial')
+  );
+
+  mockHostalUpdateResult = { data: [], error: null };
+  fireEvent.change(screen.getByTestId('pagina-web-descripcion-input'), {
+    target: { value: 'Otra descripción más' },
+  });
+  fireEvent.click(screen.getByTestId('pagina-web-save-button'));
+
+  await waitFor(() =>
+    expect(screen.getByTestId('toast-notification')).toHaveTextContent('No se pudieron guardar los cambios')
   );
 });
 
