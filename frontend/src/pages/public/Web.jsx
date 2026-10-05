@@ -96,6 +96,11 @@ export default function Web() {
     }
   };
 
+  // El servidor cobra base_price × noches (migración 025); el botón muestra
+  // ese mismo total para que lo que se ve sea lo que se cobra.
+  const nights = Math.max(0, Math.round((new Date(checkout) - new Date(checkin)) / 86400000));
+  const total = hostel && nights > 0 ? hostel.base_price * nights : null;
+
   const handleFormChange = (field) => (e) => {
     const value = field === 'conditions' ? e.target.checked : e.target.value;
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -126,12 +131,9 @@ export default function Web() {
         bedLabel: selectedBed.label,
         guestName: form.name,
         guestEmail: form.email,
-        guestPhone: form.phone,
-        guestDocument: form.document,
         guestNationality: form.nationality,
         checkin: toDbDate(checkin),
         checkout: toDbDate(checkout),
-        price: hostel.base_price,
       }));
     } catch (networkErr) {
       error = networkErr;
@@ -389,7 +391,7 @@ export default function Web() {
 
               <Button type="submit" fullWidth loading={submitting} data-testid="public-booking-submit-button">
                 {form.paymentMethod === 'tarjeta'
-                  ? `Confirmar y pagar ${formatEuro(hostel.base_price)}`
+                  ? `Confirmar y pagar ${formatEuro(total ?? hostel.base_price)}`
                   : 'Reservar y garantizar con tarjeta'}
               </Button>
             </form>

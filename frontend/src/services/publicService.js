@@ -38,23 +38,20 @@ export const publicService = {
     bedLabel,
     guestName,
     guestEmail,
-    guestPhone,
-    guestDocument,
     guestNationality,
     checkin,
     checkout,
-    price,
   }) =>
+    // Sin price/phone/document: el precio lo calcula el servidor
+    // (base_price × noches, migración 025) y teléfono/documento se recogen
+    // en el check-in real, no aquí.
     supabase.rpc('create_public_booking', {
       p_slug: slug,
       p_bed_label: bedLabel,
       p_guest_name: guestName,
       p_guest_email: guestEmail,
-      p_guest_phone: guestPhone,
-      p_guest_document: guestDocument,
       p_guest_nationality: guestNationality,
       p_checkin: checkin,
       p_checkout: checkout,
-      p_price: price,
     }),
 };
