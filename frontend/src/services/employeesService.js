@@ -1,9 +1,9 @@
 import { supabase } from '../lib/supabase';
 
 export const employeesService = {
-  create: async ({ email, password, nombre, rol }) => {
+  create: async ({ email, nombre, rol }) => {
     const { data, error } = await supabase.functions.invoke('create-employee', {
-      body: { email, password, nombre, rol },
+      body: { email, nombre, rol },
     });
     return { data, error };
   },

@@ -27,7 +27,7 @@ const INTEGRATION_LABELS = {
 function AddEmployeeModal({ isOpen, onClose }) {
   const { addEmployee } = useApp();
   const { showToast } = useToast();
-  const [form, setForm] = useState({ email: '', password: '', nombre: '', rol: 'Empleado' });
+  const [form, setForm] = useState({ email: '', nombre: '', rol: 'Empleado' });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -36,7 +36,6 @@ function AddEmployeeModal({ isOpen, onClose }) {
     const newErrors = {};
     if (!form.nombre) newErrors.nombre = 'Campo obligatorio';
     if (!form.email) newErrors.email = 'Campo obligatorio';
-    if (!form.password || form.password.length < 6) newErrors.password = 'Mínimo 6 caracteres';
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
@@ -49,14 +48,17 @@ function AddEmployeeModal({ isOpen, onClose }) {
       return;
     }
 
-    showToast('Empleado añadido');
-    setForm({ email: '', password: '', nombre: '', rol: 'Empleado' });
+    showToast('Invitación enviada');
+    setForm({ email: '', nombre: '', rol: 'Empleado' });
     onClose();
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Añadir empleado" testId="add-employee-modal" size="sm">
+    <Modal isOpen={isOpen} onClose={onClose} title="Invitar empleado" testId="add-employee-modal" size="sm">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" data-testid="add-employee-form">
+        <p className="text-sm text-slate-600">
+          Recibirá un email para crear su contraseña y acceder al panel.
+        </p>
         <Input
           label="Nombre"
           required
@@ -74,24 +76,15 @@ function AddEmployeeModal({ isOpen, onClose }) {
           error={errors.email}
           data-testid="add-employee-email-input"
         />
-        <Input
-          label="Contraseña"
-          required
-          type="password"
-          value={form.password}
-          onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
-          error={errors.password}
-          data-testid="add-employee-password-input"
-        />
         <Select
           label="Rol"
           value={form.rol}
           onChange={(e) => setForm((prev) => ({ ...prev, rol: e.target.value }))}
-          options={ROLE_OPTIONS}
+          options={ROLE_OPTIONS.filter((o) => o.value !== 'Director')}
           data-testid="add-employee-role-select"
         />
         <Button type="submit" fullWidth loading={submitting} data-testid="add-employee-submit-button">
-          Añadir
+          Enviar invitación
         </Button>
       </form>
     </Modal>

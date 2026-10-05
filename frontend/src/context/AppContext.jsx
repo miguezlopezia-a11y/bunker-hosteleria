@@ -1044,12 +1044,12 @@ export function AppProvider({ children }) {
   }, []);
 
   // --- Phase 2: Configuración ---
-  const addEmployee = useCallback(async ({ email, password, nombre, rol }) => {
+  const addEmployee = useCallback(async ({ email, nombre, rol }) => {
     const hostalId = state.session?.hostelRaw?.id;
     if (!hostalId) return { error: 'No hay sesión' };
 
-    const { data, error } = await employeesService.create({ email, password, nombre, rol });
-    if (error) return { error: 'No se pudo crear el empleado' };
+    const { data, error } = await employeesService.create({ email, nombre, rol });
+    if (error) return { error: error.message ?? 'No se pudo enviar la invitación' };
 
     await loadCoreData(hostalId);
     return { data, error: null };
