@@ -11,6 +11,7 @@ import Input from '../components/Input';
 import Select from '../components/Select';
 import Toggle from '../components/Toggle';
 import { PALETA_OPCIONES } from '../utils/paleta';
+import { PLANTILLAS } from '../utils/plantillas';
 import { hostalesService } from '../services/hostalesService';
 
 const ROLE_OPTIONS = [
@@ -115,6 +116,7 @@ export default function Configuracion() {
   const [paginaForm, setPaginaForm] = useState({
     descripcionLarga: session?.hostel?.descripcionLarga || '',
     colorAcento: session?.hostel?.colorAcento || 'ocre',
+    plantilla: session?.hostel?.plantilla || PLANTILLAS.DEFAULT,
     fotos: session?.hostel?.fotos || [],
   });
   const [uploadingFoto, setUploadingFoto] = useState(false);
@@ -124,6 +126,7 @@ export default function Configuracion() {
       setPaginaForm({
         descripcionLarga: session.hostel.descripcionLarga || '',
         colorAcento: session.hostel.colorAcento || 'ocre',
+        plantilla: session.hostel.plantilla || PLANTILLAS.DEFAULT,
         fotos: session.hostel.fotos || [],
       });
     }
@@ -132,11 +135,16 @@ export default function Configuracion() {
 
   const handleSavePagina = async (e) => {
     e.preventDefault();
-    await updateHostelInfo({
+    const { error } = await updateHostelInfo({
       descripcionLarga: paginaForm.descripcionLarga,
       colorAcento: paginaForm.colorAcento,
+      plantilla: paginaForm.plantilla,
       fotos: paginaForm.fotos,
     });
+    if (error) {
+      showToast('No se pudieron guardar los cambios', 'error');
+      return;
+    }
     showToast('Página web actualizada');
   };
 
@@ -145,29 +153,41 @@ export default function Configuracion() {
     e.target.value = '';
     if (!file || !hostalId) return;
     setUploadingFoto(true);
-    const { publicUrl, error } = await hostalesService.uploadFoto(hostalId, file);
+    const { publicUrl, error: uploadError } = await hostalesService.uploadFoto(hostalId, file);
     setUploadingFoto(false);
-    if (error) {
+    if (uploadError) {
       showToast('No se pudo subir la foto', 'error');
       return;
     }
     const fotos = [...paginaForm.fotos, publicUrl];
     setPaginaForm((prev) => ({ ...prev, fotos }));
-    await updateHostelInfo({ fotos });
+    const { error } = await updateHostelInfo({ fotos });
+    if (error) {
+      showToast('No se pudieron guardar los cambios', 'error');
+      return;
+    }
     showToast('Foto añadida');
   };
 
   const handleDeleteFoto = async (url) => {
     const fotos = paginaForm.fotos.filter((f) => f !== url);
     setPaginaForm((prev) => ({ ...prev, fotos }));
-    await updateHostelInfo({ fotos });
+    const { error } = await updateHostelInfo({ fotos });
+    if (error) {
+      showToast('No se pudieron guardar los cambios', 'error');
+      return;
+    }
     hostalesService.deleteFoto(url);
     showToast('Foto eliminada');
   };
 
   const handleSaveHostel = async (e) => {
     e.preventDefault();
-    await updateHostelInfo(hostelForm);
+    const { error } = await updateHostelInfo(hostelForm);
+    if (error) {
+      showToast('No se pudieron guardar los cambios', 'error');
+      return;
+    }
     showToast('Datos del albergue actualizados');
   };
 
@@ -273,6 +293,13 @@ export default function Configuracion() {
               onChange={(e) => setPaginaForm((prev) => ({ ...prev, colorAcento: e.target.value }))}
               options={PALETA_OPCIONES}
               data-testid="pagina-web-color-select"
+            />
+            <Select
+              label="Plantilla"
+              value={paginaForm.plantilla}
+              onChange={(e) => setPaginaForm((prev) => ({ ...prev, plantilla: e.target.value }))}
+              options={PLANTILLAS.OPCIONES}
+              data-testid="pagina-web-plantilla-select"
             />
             <div>
               <p className="text-sm font-medium text-slate-900 mb-2">Fotos</p>

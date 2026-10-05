@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { hostalesService } from '../services/hostalesService';
-import { employeesService } from '../services/employeesService';
-import { PALETA_OPCIONES } from '../utils/paleta';
-import Input from '../components/Input';
-import Select from '../components/Select';
-import Button from '../components/Button';
-import Card from '../components/Card';
-import Toggle from '../components/Toggle';
-import PaginaHostalView from '../components/public/PaginaHostalView';
+import { supabase } from '../../lib/supabase';
+import { hostalesService } from '../../services/hostalesService';
+import { employeesService } from '../../services/employeesService';
+import { PALETA_OPCIONES } from '../../utils/paleta';
+import Input from '../../components/Input';
+import Select from '../../components/Select';
+import Button from '../../components/Button';
+import Card from '../../components/Card';
+import Toggle from '../../components/Toggle';
+import PaginaHostalView from '../../components/public/PaginaHostalView';
 
 const ROL_OPCIONES = [
   { value: 'Recepción', label: 'Recepción' },

@@ -3,12 +3,21 @@ import { useParams } from 'react-router-dom';
 import { publicService } from '../../services/publicService';
 import Card from '../../components/Card';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import PaginaHostalView from '../../components/public/PaginaHostalView';
+import HeroGrande from '../../components/public/plantillas/HeroGrande';
+import HeroDividido from '../../components/public/plantillas/HeroDividido';
+import { PLANTILLAS } from '../../utils/plantillas';
 
 const DEFAULT_TITLE = 'BunkerHostal';
 
-// Plantilla 'piloto_a': carga los datos públicos por slug y los pinta con
-// PaginaHostalView (compartida con la vista previa en vivo del quiz de alta).
+const LAYOUTS = {
+  piloto_a: HeroGrande,
+  piloto_b: HeroDividido,
+};
+
+function layoutFor(plantilla) {
+  return LAYOUTS[plantilla] || LAYOUTS[PLANTILLAS.DEFAULT];
+}
+
 export default function PaginaHostal() {
   const { slug } = useParams();
 
@@ -16,6 +25,7 @@ export default function PaginaHostal() {
   const [beds, setBeds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -71,5 +81,17 @@ export default function PaginaHostal() {
     );
   }
 
-  return <PaginaHostalView pagina={pagina} beds={beds} slug={slug} />;
+  const Layout = layoutFor(pagina.plantilla);
+
+  return (
+    <div data-testid="pagina-hostal-page">
+      <Layout
+        pagina={pagina}
+        slug={slug}
+        beds={beds}
+        success={success}
+        onSuccess={() => setSuccess(true)}
+      />
+    </div>
+  );
 }
