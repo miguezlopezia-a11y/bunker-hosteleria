@@ -107,4 +107,23 @@ test('página activa muestra nombre, descripción, galería y la reserva directa
   expect(screen.getByTestId('pagina-hostal-galeria')).toBeInTheDocument();
   // El flujo de reserva es el componente compartido, no una reimplementación.
   await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+  expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', 'piloto_a');
+});
+
+test('plantilla piloto_b renderiza el layout hero dividido, no el de piloto_a', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: 'piloto_b' }];
+  renderPagina('albergue-demo-galicia');
+
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
+  expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', 'piloto_b');
+  expect(screen.getByTestId('pagina-hostal-title')).toHaveTextContent('Albergue Demo Galicia');
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('plantilla desconocida o null cae en piloto_a (default seguro)', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: null }];
+  renderPagina('albergue-demo-galicia');
+
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
+  expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', 'piloto_a');
 });

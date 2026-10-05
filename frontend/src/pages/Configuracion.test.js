@@ -153,6 +153,22 @@ test('guardar con 0 filas afectadas (RLS) muestra toast de error, no de éxito',
   );
 });
 
+test('guardar persiste la plantilla elegida', async () => {
+  renderWithProviders(<Configuracion />);
+
+  await waitFor(() =>
+    expect(screen.getByTestId('pagina-web-descripcion-input')).toHaveValue('Descripción inicial')
+  );
+  expect(screen.getByTestId('pagina-web-plantilla-select')).toHaveValue('piloto_a');
+
+  fireEvent.change(screen.getByTestId('pagina-web-plantilla-select'), { target: { value: 'piloto_b' } });
+  fireEvent.click(screen.getByTestId('pagina-web-save-button'));
+
+  await waitFor(() =>
+    expect(mockHostalUpdates).toContainEqual(expect.objectContaining({ plantilla: 'piloto_b' }))
+  );
+});
+
 test('activar el toggle persiste pagina_web_activa=true', async () => {
   renderWithProviders(<Configuracion />);
 
