@@ -17,10 +17,7 @@ function toDbDate(date) {
   return d.toISOString().slice(0, 10);
 }
 
-// Flujo de reserva directa compartido por Web.jsx (/web?hostel=) y
-// PaginaHostal.jsx (/sitio/:slug). El padre carga hostel y beds y decide qué
-// hacer al confirmar (onSuccess): Web lo muestra a pantalla completa,
-// PaginaHostal en línea.
+// Compartido por Web.jsx y PaginaHostal.jsx; onSuccess decide la UI de éxito.
 export default function ReservaDirecta({ slug, hostel, beds, onSuccess }) {
   const [checkin, setCheckin] = useState(toDateInputValue(new Date()));
   const [checkout, setCheckout] = useState(toDateInputValue(addDays(new Date(), 1)));
@@ -49,9 +46,7 @@ export default function ReservaDirecta({ slug, hostel, beds, onSuccess }) {
   const nights = Math.max(0, Math.round((new Date(checkout) - new Date(checkin)) / 86400000));
   const total = hostel && nights > 0 ? hostel.base_price * nights : null;
 
-  // Al consultar disponibilidad se recargan las habitaciones privadas para la
-  // fecha de entrada elegida. La RPC (migración 022) puede no existir aún en
-  // prod: cualquier error se trata como "sin habitaciones" y no rompe la página.
+  // RPC de habitaciones (022) puede no existir aún en prod: error = sin habitaciones.
   const handleCheckAvailability = async () => {
     setShowAvailability(true);
     setSelectedBed(null);
