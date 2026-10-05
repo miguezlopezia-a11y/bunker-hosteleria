@@ -1,5 +1,5 @@
 -- ============================================================
--- 023_pagina_web_hostal.sql
+-- 033_pagina_web_hostal.sql
 -- Tarea: shared/tarea-kimi-web-hostal-plantilla-piloto.md
 -- Campos de contenido para la página web pública por hostal
 -- (/sitio/:slug) + RPC pública get_pagina_hostal.

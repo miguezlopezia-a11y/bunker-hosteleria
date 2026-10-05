@@ -1,5 +1,5 @@
 -- ============================================================
--- 024_versionar_get_hostal_by_slug.sql
+-- 034_versionar_get_hostal_by_slug.sql
 -- Tarea: shared/tarea-kimi-web-hostal-plantilla-piloto.md (añadido de Pablo
 -- al aprobar la Fase 0): la RPC get_hostal_by_slug era SQL huérfano
 -- (existía en producción sin fuente en el repo, deuda anotada en H4 de la

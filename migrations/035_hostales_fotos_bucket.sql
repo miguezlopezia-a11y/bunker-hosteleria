@@ -1,5 +1,5 @@
 -- ============================================================
--- 025_hostales_fotos_bucket.sql
+-- 035_hostales_fotos_bucket.sql
 -- Tarea: shared/tarea-kimi-web-hostal-plantilla-piloto.md
 -- Bucket de Storage para las fotos de la página web pública por hostal.
 --
