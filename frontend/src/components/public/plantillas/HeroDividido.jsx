@@ -2,8 +2,14 @@ import React from 'react';
 import Card from '../../Card';
 import ReservaDirecta from '../ReservaDirecta';
 import { formatEuro } from '../../../utils/format';
+import { colorAcento } from '../../../utils/paleta';
 
-export default function HeroDividido({ pagina, acento, hero, galeria, slug, beds, success, onSuccess }) {
+export default function HeroDividido({ pagina, slug, beds = [], preview = false, success, onSuccess }) {
+  const acento = colorAcento(pagina.color_acento);
+  const fotos = pagina.fotos || [];
+  const hero = fotos[0];
+  const galeria = fotos.slice(1);
+
   return (
     <div data-testid="pagina-hostal-layout" data-plantilla="piloto_b" className="min-h-screen bg-white">
       <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-0 md:gap-8 md:items-stretch">
@@ -28,7 +34,7 @@ export default function HeroDividido({ pagina, acento, hero, galeria, slug, beds
             </p>
           )}
 
-          {success ? (
+          {preview ? null : success ? (
             <Card className="text-center" data-testid="public-booking-success-screen">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" className="mx-auto mb-3">
                 <circle cx="12" cy="12" r="10" />
@@ -39,7 +45,7 @@ export default function HeroDividido({ pagina, acento, hero, galeria, slug, beds
               </p>
             </Card>
           ) : (
-            <ReservaDirecta slug={slug} hostel={pagina} beds={beds} onSuccess={onSuccess} />
+            <ReservaDirecta slug={slug ?? pagina.slug} hostel={pagina} beds={beds} onSuccess={onSuccess} />
           )}
         </div>
       </div>

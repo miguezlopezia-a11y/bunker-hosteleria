@@ -5,7 +5,6 @@ import Card from '../../components/Card';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import HeroGrande from '../../components/public/plantillas/HeroGrande';
 import HeroDividido from '../../components/public/plantillas/HeroDividido';
-import { colorAcento } from '../../utils/paleta';
 import { PLANTILLAS } from '../../utils/plantillas';
 
 const DEFAULT_TITLE = 'BunkerHostal';
@@ -82,19 +81,12 @@ export default function PaginaHostal() {
     );
   }
 
-  const acento = colorAcento(pagina.color_acento);
-  const fotos = pagina.fotos || [];
-  const hero = fotos[0];
-  const galeria = fotos.slice(1);
   const Layout = layoutFor(pagina.plantilla);
 
   return (
     <div data-testid="pagina-hostal-page">
       <Layout
         pagina={pagina}
-        acento={acento}
-        hero={hero}
-        galeria={galeria}
         slug={slug}
         beds={beds}
         success={success}

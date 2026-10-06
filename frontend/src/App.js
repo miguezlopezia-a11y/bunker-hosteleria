@@ -21,6 +21,7 @@ import EmployeeHistorial from './pages/employee/EmployeeHistorial';
 import Web from './pages/public/Web';
 import Directorio from './pages/public/Directorio';
 import PaginaHostal from './pages/public/PaginaHostal';
+import AltaHostal from './pages/public/AltaHostal';
 import Survey from './pages/Survey';
 import NotFound from './pages/NotFound';
 
@@ -36,6 +37,7 @@ function App() {
             <Route path="/web" element={<Web />} />
             <Route path="/directorio" element={<Directorio />} />
             <Route path="/sitio/:slug" element={<PaginaHostal />} />
+            <Route path="/alta" element={<AltaHostal />} />
 
             <Route
               path="/dashboard"
