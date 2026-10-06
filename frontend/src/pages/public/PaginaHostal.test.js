@@ -120,6 +120,36 @@ test('plantilla piloto_b renderiza el layout hero dividido, no el de piloto_a', 
   await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
 });
 
+test('piloto_b: hero a pantalla completa con overlay y título serif encima de la foto', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: 'piloto_b' }];
+  renderPagina('albergue-demo-galicia');
+
+  const hero = await screen.findByTestId('pagina-hostal-hero');
+  expect(screen.getByTestId('pagina-hostal-hero-overlay')).toBeInTheDocument();
+  // El título va DENTRO del hero (encima de la foto), no en una columna aparte.
+  expect(hero).toContainElement(screen.getByTestId('pagina-hostal-title'));
+  // Tipografía distinta de piloto_a: pila serif de sistema.
+  expect(screen.getByTestId('pagina-hostal-title')).toHaveClass('font-serif');
+});
+
+test('piloto_a: el título NO usa serif (distinción tipográfica real entre plantillas)', async () => {
+  mockPaginaHostalRows = [PAGINA_ACTIVA];
+  renderPagina('albergue-demo-galicia');
+
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-title')).toBeInTheDocument());
+  expect(screen.getByTestId('pagina-hostal-title')).not.toHaveClass('font-serif');
+});
+
+test('piloto_b: la descripción va sobre fondo de color de acento, no como borde fino', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: 'piloto_b', color_acento: 'ocre' }];
+  renderPagina('albergue-demo-galicia');
+
+  const descripcion = await screen.findByTestId('pagina-hostal-descripcion');
+  // colorAcento('ocre') === '#b45309' (paleta acotada).
+  expect(descripcion.parentElement).toHaveStyle({ backgroundColor: '#b45309' });
+  expect(descripcion).toHaveClass('text-white');
+});
+
 test('plantilla desconocida o null cae en piloto_a (default seguro)', async () => {
   mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: null }];
   renderPagina('albergue-demo-galicia');
