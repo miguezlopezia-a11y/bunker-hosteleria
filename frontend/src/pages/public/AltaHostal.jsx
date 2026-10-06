@@ -11,6 +11,7 @@ import Button from '../../components/Button';
 import Card from '../../components/Card';
 import Toggle from '../../components/Toggle';
 import PaginaHostalView from '../../components/public/PaginaHostalView';
+import { useToast } from '../../context/ToastContext';
 
 const ROL_OPCIONES = [
   { value: 'Recepción', label: 'Recepción' },
@@ -25,6 +26,7 @@ const ROL_OPCIONES = [
 // guarda todo de una vez: hostal (update), invitaciones (create-employee).
 export default function AltaHostal() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -141,11 +143,14 @@ export default function AltaHostal() {
     }
     for (const inv of invites) {
       if (!inv.email.trim()) continue;
-      await employeesService.create({
+      const { error: inviteError } = await employeesService.create({
         email: inv.email.trim(),
         nombre: inv.nombre.trim() || inv.email.trim(),
         rol: inv.rol,
       });
+      if (inviteError) {
+        showToast(`No se pudo invitar a ${inv.email.trim()}`, 'error');
+      }
     }
     setSubmitting(false);
     navigate('/dashboard');

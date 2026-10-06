@@ -14,6 +14,7 @@ let mockSignUpSession = true;
 let mockSignUpError = null;
 let mockLoginError = null;
 let mockRpcError = null;
+let mockInvokeError = null;
 const mockRpcCalls = [];
 const mockHostalUpdates = [];
 const mockInvokes = [];
@@ -68,6 +69,7 @@ jest.mock('../../lib/supabase', () => {
       functions: {
         invoke: async (name, { body } = {}) => {
           mockInvokes.push({ name, body });
+          if (mockInvokeError) return { data: null, error: mockInvokeError };
           return { data: { invited: true }, error: null };
         },
       },
@@ -120,6 +122,7 @@ beforeEach(() => {
   mockSignUpError = null;
   mockLoginError = null;
   mockRpcError = null;
+  mockInvokeError = null;
   mockSignUpPayload = null;
   mockRpcCalls.length = 0;
   mockHostalUpdates.length = 0;
@@ -260,4 +263,31 @@ test('paso 4: guarda página web (con plantilla) e invita empleados al finalizar
       body: { email: 'empleada@hostal.es', nombre: 'Laura', rol: 'Empleado' },
     },
   ]);
+});
+
+test('si falla una invitación al finalizar, avisa pero llega al dashboard igual', async () => {
+  mockInvokeError = { message: 'Ya existe un usuario con ese email' };
+  renderQuiz();
+  fillCuenta();
+  fireEvent.click(screen.getByTestId('alta-cuenta-submit'));
+  await waitFor(() => screen.getByTestId('alta-hostal-form'));
+  fillHostal();
+  fireEvent.click(screen.getByTestId('alta-hostal-submit'));
+  await waitFor(() => screen.getByTestId('alta-empleados'));
+
+  fireEvent.click(screen.getByTestId('alta-invite-add'));
+  fireEvent.change(screen.getByTestId('alta-invite-email-0'), {
+    target: { value: 'repetida@hostal.es' },
+  });
+  fireEvent.click(screen.getByTestId('alta-empleados-next'));
+  await waitFor(() => screen.getByTestId('alta-web-form'));
+
+  fireEvent.click(screen.getByTestId('alta-finalizar'));
+
+  await waitFor(() =>
+    expect(screen.getByTestId('toast-notification')).toHaveTextContent(
+      'No se pudo invitar a repetida@hostal.es'
+    )
+  );
+  await waitFor(() => expect(screen.getByTestId('dashboard-reached')).toBeInTheDocument());
 });
