@@ -12,42 +12,57 @@ export default function HeroDividido({ pagina, slug, beds = [], preview = false,
 
   return (
     <div data-testid="pagina-hostal-layout" data-plantilla="piloto_b" className="min-h-screen bg-white">
-      <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-0 md:gap-8 md:items-stretch">
+      <div
+        className="relative w-full min-h-[80vh] bg-gray-300 bg-cover bg-center flex items-end"
+        style={hero ? { backgroundImage: `url(${hero})` } : { backgroundColor: acento }}
+        data-testid="pagina-hostal-hero"
+      >
         <div
-          className="w-full h-64 md:h-auto md:min-h-[480px] bg-gray-300 bg-cover bg-center order-1 md:order-2"
-          style={hero ? { backgroundImage: `url(${hero})` } : { backgroundColor: acento }}
-          data-testid="pagina-hostal-hero"
+          className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10"
+          data-testid="pagina-hostal-hero-overlay"
         />
-        <div className="px-4 py-8 md:py-12 order-2 md:order-1 flex flex-col">
-          <div className="pl-4 mb-6" style={{ borderLeftWidth: 4, borderColor: acento }}>
-            <h1 className="text-3xl font-bold text-slate-900" data-testid="pagina-hostal-title">
-              {pagina.name}
-            </h1>
-            <p className="text-slate-500 text-sm mt-1">
-              {pagina.address} · Desde {formatEuro(pagina.base_price)}/noche
+        <div className="relative px-6 pb-10 md:px-12 md:pb-14 w-full max-w-5xl mx-auto">
+          <h1
+            className="font-serif text-4xl md:text-5xl font-bold text-white"
+            data-testid="pagina-hostal-title"
+          >
+            {pagina.name}
+          </h1>
+          <p className="text-white/90 mt-2">{pagina.address}</p>
+          <div className="inline-block mt-4 bg-white text-slate-900 rounded-2xl shadow-lg px-5 py-3">
+            <p className="text-sm font-semibold">
+              Desde {formatEuro(pagina.base_price)}
+              <span className="font-normal text-slate-500">/noche</span>
             </p>
           </div>
-
-          {pagina.descripcion_larga && (
-            <p className="text-slate-700 whitespace-pre-line mb-6" data-testid="pagina-hostal-descripcion">
-              {pagina.descripcion_larga}
-            </p>
-          )}
-
-          {preview ? null : success ? (
-            <Card className="text-center" data-testid="public-booking-success-screen">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" className="mx-auto mb-3">
-                <circle cx="12" cy="12" r="10" />
-                <path d="m8 12 3 3 5-6" />
-              </svg>
-              <p className="text-lg font-semibold text-slate-900">
-                Reserva confirmada. Recibirás confirmación por email.
-              </p>
-            </Card>
-          ) : (
-            <ReservaDirecta slug={slug ?? pagina.slug} hostel={pagina} beds={beds} onSuccess={onSuccess} />
-          )}
         </div>
+      </div>
+
+      {pagina.descripcion_larga && (
+        <section style={{ backgroundColor: acento }}>
+          <p
+            className="max-w-3xl mx-auto px-6 py-10 text-white whitespace-pre-line"
+            data-testid="pagina-hostal-descripcion"
+          >
+            {pagina.descripcion_larga}
+          </p>
+        </section>
+      )}
+
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        {preview ? null : success ? (
+          <Card className="text-center" data-testid="public-booking-success-screen">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" className="mx-auto mb-3">
+              <circle cx="12" cy="12" r="10" />
+              <path d="m8 12 3 3 5-6" />
+            </svg>
+            <p className="text-lg font-semibold text-slate-900">
+              Reserva confirmada. Recibirás confirmación por email.
+            </p>
+          </Card>
+        ) : (
+          <ReservaDirecta slug={slug ?? pagina.slug} hostel={pagina} beds={beds} onSuccess={onSuccess} />
+        )}
       </div>
 
       {galeria.length > 0 && (
@@ -58,7 +73,7 @@ export default function HeroDividido({ pagina, slug, beds = [], preview = false,
                 key={url}
                 src={url}
                 alt={pagina.name}
-                className="w-full h-28 object-cover rounded-lg"
+                className="w-full h-28 object-cover rounded-2xl shadow-md"
                 loading="lazy"
               />
             ))}
