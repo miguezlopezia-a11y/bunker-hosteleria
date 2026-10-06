@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { hostalesService } from '../../services/hostalesService';
 import { employeesService } from '../../services/employeesService';
 import { PALETA_OPCIONES } from '../../utils/paleta';
+import { PLANTILLAS } from '../../utils/plantillas';
 import Input from '../../components/Input';
 import Select from '../../components/Select';
 import Button from '../../components/Button';
@@ -41,7 +42,7 @@ export default function AltaHostal() {
   const [invites, setInvites] = useState([]);
 
   // Paso 4 — página web
-  const [web, setWeb] = useState({ activa: false, descripcion: '', color: 'ocre', fotos: [] });
+  const [web, setWeb] = useState({ activa: false, descripcion: '', color: 'ocre', plantilla: PLANTILLAS.DEFAULT, fotos: [] });
   const [uploading, setUploading] = useState(false);
 
   const set = (setter) => (field) => (e) =>
@@ -131,6 +132,7 @@ export default function AltaHostal() {
         color_acento: web.color,
         fotos: web.fotos,
         pagina_web_activa: web.activa,
+        plantilla: web.plantilla,
       });
       if (upError) {
         setSubmitting(false);
@@ -155,6 +157,7 @@ export default function AltaHostal() {
     base_price: hostal.precio ? Number(hostal.precio) : null,
     descripcion_larga: web.descripcion,
     color_acento: web.color,
+    plantilla: web.plantilla,
     fotos: web.fotos,
     slug,
   };
@@ -255,6 +258,7 @@ export default function AltaHostal() {
                   />
                 </div>
                 <Select label="Color de acento" value={web.color} onChange={(e) => setWeb((prev) => ({ ...prev, color: e.target.value }))} options={PALETA_OPCIONES} data-testid="alta-web-color" />
+                <Select label="Plantilla" value={web.plantilla} onChange={(e) => setWeb((prev) => ({ ...prev, plantilla: e.target.value }))} options={PLANTILLAS.OPCIONES} data-testid="alta-web-plantilla" />
                 <div>
                   <p className="text-sm font-medium text-slate-900 mb-2">Fotos</p>
                   {web.fotos.length > 0 && (
