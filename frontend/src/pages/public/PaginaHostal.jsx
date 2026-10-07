@@ -3,20 +3,9 @@ import { useParams } from 'react-router-dom';
 import { publicService } from '../../services/publicService';
 import Card from '../../components/Card';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import HeroGrande from '../../components/public/plantillas/HeroGrande';
-import HeroDividido from '../../components/public/plantillas/HeroDividido';
-import { PLANTILLAS } from '../../utils/plantillas';
+import { layoutFor } from '../../utils/plantillas';
 
 const DEFAULT_TITLE = 'BunkerHostal';
-
-const LAYOUTS = {
-  piloto_a: HeroGrande,
-  piloto_b: HeroDividido,
-};
-
-function layoutFor(plantilla) {
-  return LAYOUTS[plantilla] || LAYOUTS[PLANTILLAS.DEFAULT];
-}
 
 export default function PaginaHostal() {
   const { slug } = useParams();
