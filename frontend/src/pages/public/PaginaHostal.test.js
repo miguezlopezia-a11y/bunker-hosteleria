@@ -210,3 +210,144 @@ test('regresión: el mapa de layouts es el mismo en página pública y en la pre
   expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', 'tb_hero_a');
   expect(screen.queryByTestId('availability-check-button')).not.toBeInTheDocument();
 });
+
+// Adaptaciones de las variantes restantes: el rasgo distintivo de cada una
+// (leído del código fuente original) + la reserva directa presente.
+
+async function renderVariante(plantilla) {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla }];
+  renderPagina('albergue-demo-galicia');
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
+  expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', plantilla);
+}
+
+test('tb_hero_b: centrado con la imagen estrecha arriba (lg:w-2/6)', async () => {
+  await renderVariante('tb_hero_b');
+  const hero = screen.getByTestId('pagina-hostal-hero');
+  expect(hero.className).toContain('justify-center flex-col');
+  expect(hero.querySelector('img')).toHaveClass('lg:w-2/6');
+  expect(screen.getByTestId('pagina-hostal-title').closest('.text-center')).not.toBeNull();
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('tb_hero_c: imagen a la izquierda y texto a la derecha (lg:pl-24)', async () => {
+  await renderVariante('tb_hero_c');
+  const img = screen.getByTestId('pagina-hostal-hero').querySelector('img');
+  expect(img.parentElement.className).toContain('md:mb-0');
+  expect(screen.getByTestId('pagina-hostal-title').parentElement.className).toContain('lg:pl-24');
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('tb_hero_d: texto a la izquierda, imagen a la derecha y línea pequeña de nota', async () => {
+  await renderVariante('tb_hero_d');
+  expect(screen.getByTestId('pagina-hostal-title').parentElement.className).toContain('lg:pr-24');
+  expect(screen.getByText(/calle demo 3/i)).toHaveClass('text-sm', 'mt-2');
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('tb_hero_e: imagen a la izquierda con nota pequeña bajo el CTA', async () => {
+  await renderVariante('tb_hero_e');
+  const img = screen.getByTestId('pagina-hostal-hero').querySelector('img');
+  expect(img.parentElement.className).toContain('mb-10');
+  expect(screen.getByText(/calle demo 3/i)).toHaveClass('text-sm', 'mt-2');
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('tb_hero_f: centrado con contenedor md:w-2/3 y nota', async () => {
+  await renderVariante('tb_hero_f');
+  expect(screen.getByTestId('pagina-hostal-title').parentElement.className).toContain('md:w-2/3');
+  expect(screen.getByText(/calle demo 3/i)).toHaveClass('text-sm', 'mt-2');
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('tb_hero_a_dark: mismo layout que A pero sobre fondo oscuro bg-gray-900', async () => {
+  await renderVariante('tb_hero_a_dark');
+  const seccion = screen.getByTestId('pagina-hostal-hero');
+  expect(seccion.className).toContain('bg-gray-900');
+  expect(seccion.querySelector('.bg-gray-800')).not.toBeNull();
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('tb_hero_b_dark: centrado oscuro con imagen estrecha arriba', async () => {
+  await renderVariante('tb_hero_b_dark');
+  const hero = screen.getByTestId('pagina-hostal-hero');
+  expect(hero.className).toContain('bg-gray-900');
+  expect(hero.querySelector('img')).toHaveClass('lg:w-2/6');
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('tb_hero_c_dark: imagen izquierda + texto derecha en oscuro', async () => {
+  await renderVariante('tb_hero_c_dark');
+  const hero = screen.getByTestId('pagina-hostal-hero');
+  expect(hero.className).toContain('bg-gray-900');
+  expect(screen.getByTestId('pagina-hostal-title').parentElement.className).toContain('lg:pl-24');
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('tb_hero_d_dark: texto izquierda + imagen derecha + nota en oscuro', async () => {
+  await renderVariante('tb_hero_d_dark');
+  const hero = screen.getByTestId('pagina-hostal-hero');
+  expect(hero.className).toContain('bg-gray-900');
+  expect(screen.getByTestId('pagina-hostal-title').parentElement.className).toContain('lg:pr-24');
+  expect(screen.getByText(/calle demo 3/i)).toHaveClass('text-sm', 'mt-2');
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('tb_hero_e_dark: imagen izquierda + nota en oscuro', async () => {
+  await renderVariante('tb_hero_e_dark');
+  const hero = screen.getByTestId('pagina-hostal-hero');
+  expect(hero.className).toContain('bg-gray-900');
+  const img = hero.querySelector('img');
+  expect(img.parentElement.className).toContain('mb-10');
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('tb_hero_f_dark: centrado oscuro con md:w-2/3 y nota', async () => {
+  await renderVariante('tb_hero_f_dark');
+  const hero = screen.getByTestId('pagina-hostal-hero');
+  expect(hero.className).toContain('bg-gray-900');
+  expect(screen.getByTestId('pagina-hostal-title').parentElement.className).toContain('md:w-2/3');
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('hyperui_section_23: grid 4 columnas con imagen dominante (col-span-3) a la derecha', async () => {
+  await renderVariante('hyperui_section_23');
+  const hero = screen.getByTestId('pagina-hostal-hero');
+  expect(hero.closest('.md\\:grid-cols-4')).not.toBeNull();
+  expect(hero.parentElement.className).toContain('md:col-span-3');
+  const title = screen.getByTestId('pagina-hostal-title');
+  expect(title.parentElement.parentElement.className).toContain('md:col-span-1');
+  // La imagen va DESPUÉS del texto en el DOM (a la derecha).
+  expect(title.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('hyperui_section_32: imagen dominante a la IZQUIERDA del texto', async () => {
+  await renderVariante('hyperui_section_32');
+  const hero = screen.getByTestId('pagina-hostal-hero');
+  expect(hero.parentElement.className).toContain('md:col-span-3');
+  const title = screen.getByTestId('pagina-hostal-title');
+  expect(title.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('hyperui_section_vertical: texto arriba e imagen a todo lo ancho debajo', async () => {
+  await renderVariante('hyperui_section_vertical');
+  const hero = screen.getByTestId('pagina-hostal-hero');
+  expect(hero.tagName).toBe('IMG');
+  expect(hero.closest('.space-y-4')).not.toBeNull();
+  const title = screen.getByTestId('pagina-hostal-title');
+  expect(title.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('flowbite_visual_heading: grid 12 columnas, texto 7 + imagen 5', async () => {
+  await renderVariante('flowbite_visual_heading');
+  const hero = screen.getByTestId('pagina-hostal-hero');
+  expect(hero.querySelector('img')).not.toBeNull();
+  expect(hero.className).toContain('lg:col-span-5');
+  expect(hero.closest('.lg\\:grid-cols-12')).not.toBeNull();
+  const title = screen.getByTestId('pagina-hostal-title');
+  expect(title.parentElement.className).toContain('lg:col-span-7');
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
