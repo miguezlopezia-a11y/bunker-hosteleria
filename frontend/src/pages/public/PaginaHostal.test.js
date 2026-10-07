@@ -12,6 +12,7 @@ import { screen, waitFor } from '@testing-library/react';
 import { Routes, Route } from 'react-router-dom';
 import { renderWithProviders } from '../../test-utils';
 import PaginaHostal from './PaginaHostal';
+import PaginaHostalView from '../../components/public/PaginaHostalView';
 
 // Controla lo que devuelve el mock de get_pagina_hostal (el prefijo mock* es
 // obligatorio para que Jest permita referenciarlo desde la factory).
@@ -156,4 +157,56 @@ test('plantilla desconocida o null cae en piloto_a (default seguro)', async () =
 
   await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
   expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', 'piloto_a');
+});
+
+test('tb_hero_a: columnas texto+imagen, CTA "Ver disponibilidad" con fondo de acento', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: 'tb_hero_a' }];
+  renderPagina('albergue-demo-galicia');
+
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
+  expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', 'tb_hero_a');
+  expect(screen.getByTestId('pagina-hostal-title')).toHaveTextContent('Albergue Demo Galicia');
+  const cta = screen.getByRole('link', { name: /ver disponibilidad/i });
+  expect(cta).toHaveStyle({ backgroundColor: '#b45309' });
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('hyperui_section_12: título dentro de max-w-prose e imagen a la derecha', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: 'hyperui_section_12' }];
+  renderPagina('albergue-demo-galicia');
+
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
+  expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', 'hyperui_section_12');
+  const title = screen.getByTestId('pagina-hostal-title');
+  expect(title.closest('.max-w-prose')).not.toBeNull();
+  const hero = screen.getByTestId('pagina-hostal-hero');
+  expect(hero.tagName).toBe('IMG');
+  expect(hero).toHaveClass('rounded');
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('flowbite_hero_default: cabecera centrada con badge pill y título extrabold', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: 'flowbite_hero_default' }];
+  renderPagina('albergue-demo-galicia');
+
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
+  expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', 'flowbite_hero_default');
+  const badge = screen.getByTestId('flowbite-hero-badge');
+  expect(badge).toHaveClass('rounded-full');
+  expect(badge).toHaveStyle({ backgroundColor: '#b45309' });
+  const title = screen.getByTestId('pagina-hostal-title');
+  expect(title).toHaveClass('font-extrabold');
+  expect(title.closest('.text-center')).not.toBeNull();
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('regresión: el mapa de layouts es el mismo en página pública y en la preview del quiz', () => {
+  // Antes el LAYOUTS de PaginaHostalView estaba duplicado y una variante
+  // nueva caía al default (piloto_a) en la vista previa del quiz /alta.
+  renderWithProviders(
+    <PaginaHostalView pagina={{ ...PAGINA_ACTIVA, plantilla: 'tb_hero_a' }} beds={[]} preview slug="albergue-demo-galicia" />
+  );
+  expect(screen.getByTestId('pagina-hostal-preview')).toBeInTheDocument();
+  expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', 'tb_hero_a');
+  expect(screen.queryByTestId('availability-check-button')).not.toBeInTheDocument();
 });
