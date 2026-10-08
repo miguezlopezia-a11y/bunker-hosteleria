@@ -18,6 +18,7 @@ import HyperuiSection32 from '../components/public/plantillas/HyperuiSection32';
 import HyperuiSectionVertical from '../components/public/plantillas/HyperuiSectionVertical';
 import FlowbiteHeroDefault from '../components/public/plantillas/FlowbiteHeroDefault';
 import FlowbiteVisualHeading from '../components/public/plantillas/FlowbiteVisualHeading';
+import Norte from '../components/public/plantillas/Norte';
 
 export const PLANTILLAS = {
   DEFAULT: 'piloto_a',
@@ -42,6 +43,7 @@ export const PLANTILLAS = {
     { value: 'hyperui_section_vertical', label: 'HyperUI Sección vertical (imagen a todo lo ancho)' },
     { value: 'flowbite_hero_default', label: 'Flowbite Hero por defecto (centrado, con badge)' },
     { value: 'flowbite_visual_heading', label: 'Flowbite Hero visual (texto + imagen en grid)' },
+    { value: 'norte', label: 'Norte (oscuro duotone, premium)' },
   ],
 };
 
@@ -69,6 +71,7 @@ export const LAYOUTS = {
   hyperui_section_vertical: HyperuiSectionVertical,
   flowbite_hero_default: FlowbiteHeroDefault,
   flowbite_visual_heading: FlowbiteVisualHeading,
+  norte: Norte,
 };
 
 export function layoutFor(plantilla) {

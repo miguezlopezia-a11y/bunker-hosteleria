@@ -1,0 +1,101 @@
+/* Norte — tema premium oscuro. Los colores dinámicos llegan por variables
+   CSS que el componente inyecta en su raíz (--norte-acento y
+   --norte-acento-oscuro). Las reglas .norte-form oscurecen la reserva
+   compartida (ReservaDirecta/Card/Input/Select/Button) sin tocar esos
+   componentes: solo afectan a lo que cuelgue del contenedor con esa
+   clase. */
+
+@keyframes norte-kb {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
+}
+.norte-kb {
+  animation: norte-kb 26s ease-in-out infinite alternate;
+}
+
+@keyframes norte-bounce {
+  0%, 100% { transform: translateY(0); opacity: 0.7; }
+  50% { transform: translateY(8px); opacity: 1; }
+}
+.norte-scroll-hint {
+  animation: norte-bounce 2.2s ease-in-out infinite;
+}
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+[data-reveal="shown"] {
+  opacity: 1;
+  transform: none;
+}
+
+.norte-foto-hover {
+  filter: contrast(1.05) saturate(0.85);
+}
+
+.norte-desc::first-letter {
+  float: left;
+  font-size: 2.6em;
+  line-height: 0.9;
+  padding-right: 0.12em;
+  color: var(--norte-acento);
+}
+
+/* Skin oscura de la reserva compartida (solo dentro de .norte-form). */
+.norte-form [class~=bg-white] {
+  background-color: #0b1220 !important;
+  border-color: #334155 !important;
+}
+.norte-form [class~=text-slate-900],
+.norte-form [class~=text-gray-700] {
+  color: #f1f5f9 !important;
+}
+.norte-form [class~=text-slate-500],
+.norte-form [class~=text-slate-600],
+.norte-form [class~=text-gray-400],
+.norte-form [class~=text-gray-600] {
+  color: #cbd5e1 !important;
+}
+.norte-form input:not([type="checkbox"]):not([type="radio"]),
+.norte-form select {
+  background-color: #1e293b !important;
+  border-color: #475569 !important;
+  color: #f8fafc !important;
+}
+.norte-form input:focus,
+.norte-form select:focus {
+  --tw-ring-color: var(--norte-acento) !important;
+  border-color: var(--norte-acento) !important;
+}
+.norte-form button[class~=bg-blue-600] {
+  background-color: var(--norte-acento) !important;
+}
+.norte-form button[class~=bg-blue-600]:hover {
+  background-color: var(--norte-acento-oscuro) !important;
+}
+.norte-form :is(input[type="checkbox"], input[type="radio"]) {
+  accent-color: var(--norte-acento);
+}
+
+@media (max-width: 767px) {
+  /* Móvil: motion mínimo. */
+  .norte-kb { animation: none; }
+  .norte-scroll-hint { animation: none; }
+  [data-reveal] { opacity: 1; transform: none; transition: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .norte-kb { animation: none; }
+  .norte-scroll-hint { animation: none; }
+  [data-reveal] { opacity: 1; transform: none; transition: none; }
+}
+@media (min-width: 768px) {
+  .norte-foto-hover {
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+  }
+  .norte-foto-hover:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+  }
+}
