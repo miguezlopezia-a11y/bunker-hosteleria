@@ -1,11 +1,13 @@
 import HeroGrande from '../components/public/plantillas/HeroGrande';
 import HeroDividido from '../components/public/plantillas/HeroDividido';
+import Norte from '../components/public/plantillas/Norte';
 
 export const PLANTILLAS = {
   DEFAULT: 'piloto_a',
   OPCIONES: [
     { value: 'piloto_a', label: 'Hero grande (foto de cabecera)' },
     { value: 'piloto_b', label: 'Hero dividido (foto + texto en paralelo)' },
+    { value: 'norte', label: 'Norte (oscuro duotone, premium)' },
   ],
 };
 
@@ -13,6 +15,7 @@ export const PLANTILLAS = {
 export const LAYOUTS = {
   piloto_a: HeroGrande,
   piloto_b: HeroDividido,
+  norte: Norte,
 };
 
 export function layoutFor(plantilla) {

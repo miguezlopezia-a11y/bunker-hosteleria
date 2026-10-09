@@ -13,6 +13,7 @@ import { Routes, Route } from 'react-router-dom';
 import { renderWithProviders } from '../../test-utils';
 import PaginaHostal from './PaginaHostal';
 import PaginaHostalView from '../../components/public/PaginaHostalView';
+import Norte from '../../components/public/plantillas/Norte';
 
 // Controla lo que devuelve el mock de get_pagina_hostal (el prefijo mock* es
 // obligatorio para que Jest permita referenciarlo desde la factory).
@@ -166,4 +167,87 @@ test('regresión: el mapa de layouts es el mismo en página pública y en la pre
   expect(screen.getByTestId('pagina-hostal-preview')).toBeInTheDocument();
   expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', 'piloto_b');
   expect(screen.queryByTestId('availability-check-button')).not.toBeInTheDocument();
+});
+
+test('norte: tema oscuro duotone — hero carbón, overlay multiply del acento, título serif', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: 'norte', color_acento: 'ocre' }];
+  renderPagina('albergue-demo-galicia');
+
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
+  expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', 'norte');
+
+  const hero = screen.getByTestId('pagina-hostal-hero');
+  expect(hero.className).toContain('bg-gray-950');
+
+  // Duotone: overlay con blend multiply del color de acento sobre la foto.
+  const duotone = screen.getByTestId('norte-duotone');
+  expect(duotone).toHaveStyle({ backgroundColor: '#b45309', mixBlendMode: 'multiply' });
+
+  const title = screen.getByTestId('pagina-hostal-title');
+  expect(title).toHaveClass('font-serif', 'text-white');
+  expect(hero).toContainElement(title);
+
+  // Ficha de precio tipo pill sobre el hero.
+  const badge = screen.getByTestId('norte-price-badge');
+  expect(badge).toHaveClass('rounded-full');
+  expect(badge).toHaveStyle({ backgroundColor: '#b45309' });
+
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('norte: el contenido bajo el hero lleva data-reveal (motion por revelado)', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: 'norte' }];
+  renderPagina('albergue-demo-galicia');
+
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
+  // El atributo data-reveal está en el section contenedor; el observer
+  // (o su fallback) lo marca como "shown" al entrar en viewport.
+  expect(screen.getByTestId('pagina-hostal-descripcion').closest('[data-reveal]')).not.toBeNull();
+  expect(screen.getByTestId('pagina-hostal-galeria').closest('[data-reveal]')).not.toBeNull();
+});
+
+test('norte: la preview del quiz no muestra la reserva', () => {
+  renderWithProviders(
+    <PaginaHostalView pagina={{ ...PAGINA_ACTIVA, plantilla: 'norte' }} beds={[]} preview slug="albergue-demo-galicia" />
+  );
+  expect(screen.getByTestId('pagina-hostal-preview')).toBeInTheDocument();
+  expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', 'norte');
+  expect(screen.queryByTestId('availability-check-button')).not.toBeInTheDocument();
+});
+
+test('norte: skin oscura — la reserva compartida va dentro de .norte-form y el tema inyecta el CSS', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: 'norte', color_acento: 'ocre' }];
+  renderPagina('albergue-demo-galicia');
+
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
+  // La caja de Disponibilidad (Card compartida, sin tocar) queda enquistada
+  // en el contenedor con la skin oscura descendiente (Norte.css).
+  expect(screen.getByTestId('availability-check-button').closest('.norte-form')).not.toBeNull();
+  // La raíz del tema inyecta el acento y su tono hover como variables CSS
+  // que Norte.css consume (botones, focos, filetes).
+  const layout = screen.getByTestId('pagina-hostal-layout');
+  expect(layout.getAttribute('style')).toContain('--norte-acento: #b45309');
+});
+
+test('norte: la pantalla de éxito también va dentro de la skin oscura', () => {
+  renderWithProviders(
+    <Norte pagina={{ ...PAGINA_ACTIVA, plantilla: 'norte' }} beds={[]} success onSuccess={() => {}} slug="albergue-demo-galicia" />
+  );
+  const success = screen.getByTestId('public-booking-success-screen');
+  expect(success.closest('.norte-form')).not.toBeNull();
+  expect(screen.queryByTestId('availability-check-button')).not.toBeInTheDocument();
+});
+
+test('norte: footer con filete de acento y etiquetas de sección', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: 'norte', color_acento: 'ocre' }];
+  renderPagina('albergue-demo-galicia');
+
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
+  const footer = screen.getByTestId('norte-footer');
+  expect(footer).toHaveStyle({ borderTopColor: '#b45309' });
+  expect(screen.getByText(/sin comisiones/i)).toBeInTheDocument();
+  expect(screen.getByText('El albergue')).toBeInTheDocument();
+  expect(screen.getByText('Galería')).toBeInTheDocument();
+  // La galería lleva el mismo filtro de foto que el hero.
+  expect(screen.getByTestId('pagina-hostal-galeria').querySelector('img').className).toContain('norte-foto-hover');
 });

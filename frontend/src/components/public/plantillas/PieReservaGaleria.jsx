@@ -15,10 +15,12 @@ export default function PieReservaGaleria({
   onSuccess,
   galeria,
   imgClassName = 'rounded-lg',
+  reservaClassName = '',
+  galeriaTitulo = '',
 }) {
   return (
     <>
-      <div className="max-w-5xl mx-auto px-4 pb-8">
+      <div className={`max-w-5xl mx-auto px-4 pb-8 ${reservaClassName}`}>
         {preview ? null : success ? (
           <Card className="text-center" data-testid="public-booking-success-screen">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" className="mx-auto mb-3">
@@ -38,6 +40,9 @@ export default function PieReservaGaleria({
 
       {galeria.length > 0 && (
         <div className="max-w-5xl mx-auto px-4 pb-10">
+          {galeriaTitulo && (
+            <p className="text-xs uppercase tracking-widest text-gray-400 mb-3">{galeriaTitulo}</p>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" data-testid="pagina-hostal-galeria">
             {galeria.map((url) => (
               <img
