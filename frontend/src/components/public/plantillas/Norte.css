@@ -45,24 +45,24 @@
 
 /* Skin oscura de la reserva compartida (solo dentro de .norte-form). */
 .norte-form [class~=bg-white] {
-  background-color: #0b1220 !important;
-  border-color: #334155 !important;
+  background-color: #111827 !important;
+  border-color: #374151 !important;
 }
 .norte-form [class~=text-slate-900],
 .norte-form [class~=text-gray-700] {
-  color: #f1f5f9 !important;
+  color: #f3f4f6 !important;
 }
 .norte-form [class~=text-slate-500],
 .norte-form [class~=text-slate-600],
 .norte-form [class~=text-gray-400],
 .norte-form [class~=text-gray-600] {
-  color: #cbd5e1 !important;
+  color: #d1d5db !important;
 }
 .norte-form input:not([type="checkbox"]):not([type="radio"]),
 .norte-form select {
-  background-color: #1e293b !important;
-  border-color: #475569 !important;
-  color: #f8fafc !important;
+  background-color: #1f2937 !important;
+  border-color: #4b5563 !important;
+  color: #f9fafb !important;
 }
 .norte-form input:focus,
 .norte-form select:focus {
