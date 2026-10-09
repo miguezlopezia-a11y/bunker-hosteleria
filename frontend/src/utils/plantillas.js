@@ -19,6 +19,7 @@ import HyperuiSectionVertical from '../components/public/plantillas/HyperuiSecti
 import FlowbiteHeroDefault from '../components/public/plantillas/FlowbiteHeroDefault';
 import FlowbiteVisualHeading from '../components/public/plantillas/FlowbiteVisualHeading';
 import Norte from '../components/public/plantillas/Norte';
+import Huella from '../components/public/plantillas/Huella';
 
 export const PLANTILLAS = {
   DEFAULT: 'piloto_a',
@@ -44,6 +45,7 @@ export const PLANTILLAS = {
     { value: 'flowbite_hero_default', label: 'Flowbite Hero por defecto (centrado, con badge)' },
     { value: 'flowbite_visual_heading', label: 'Flowbite Hero visual (texto + imagen en grid)' },
     { value: 'norte', label: 'Norte (oscuro duotone, premium)' },
+    { value: 'huella', label: 'Huella (claro minimal, premium)' },
   ],
 };
 
@@ -72,6 +74,7 @@ export const LAYOUTS = {
   flowbite_hero_default: FlowbiteHeroDefault,
   flowbite_visual_heading: FlowbiteVisualHeading,
   norte: Norte,
+  huella: Huella,
 };
 
 export function layoutFor(plantilla) {

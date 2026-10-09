@@ -54,6 +54,7 @@
 }
 .norte-form [class~=text-slate-500],
 .norte-form [class~=text-slate-600],
+.norte-form [class~=text-slate-400],
 .norte-form [class~=text-gray-400],
 .norte-form [class~=text-gray-600] {
   color: #d1d5db !important;
