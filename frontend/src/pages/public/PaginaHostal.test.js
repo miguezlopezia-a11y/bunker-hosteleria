@@ -14,6 +14,7 @@ import { renderWithProviders } from '../../test-utils';
 import PaginaHostal from './PaginaHostal';
 import PaginaHostalView from '../../components/public/PaginaHostalView';
 import Norte from '../../components/public/plantillas/Norte';
+import Huella from '../../components/public/plantillas/Huella';
 
 // Controla lo que devuelve el mock de get_pagina_hostal (el prefijo mock* es
 // obligatorio para que Jest permita referenciarlo desde la factory).
@@ -250,4 +251,69 @@ test('norte: footer con filete de acento y etiquetas de sección', async () => {
   expect(screen.getByText('Galería')).toBeInTheDocument();
   // La galería lleva el mismo filtro de foto que el hero.
   expect(screen.getByTestId('pagina-hostal-galeria').querySelector('img').className).toContain('norte-foto-hover');
+});
+
+test('huella: minimal claro — label de acento, título sans, precio mono, imagen ancha debajo', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: 'huella', color_acento: 'ocre' }];
+  renderPagina('albergue-demo-galicia');
+
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
+  expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', 'huella');
+
+  const layout = screen.getByTestId('pagina-hostal-layout');
+  expect(layout.className).toContain('bg-white');
+  expect(layout.getAttribute('style')).toContain('--huella-acento: #b45309');
+
+  // Precio en pila mono (huella distintivo frente a serif de Norte).
+  const price = screen.getByTestId('huella-price');
+  expect(price).toHaveClass('font-mono');
+  expect(price).toHaveStyle({ color: '#b45309' });
+
+  // Hero = imagen a todo lo ancho DEBAJO del bloque de texto (vertical split).
+  const hero = screen.getByTestId('pagina-hostal-hero');
+  expect(hero.tagName).toBe('IMG');
+  expect(hero).toHaveClass('rounded-2xl');
+  const title = screen.getByTestId('pagina-hostal-title');
+  expect(title.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('huella: la reserva compartida va dentro de .huella-form (skin clara premium)', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: 'huella' }];
+  renderPagina('albergue-demo-galicia');
+
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
+  expect(screen.getByTestId('availability-check-button').closest('.huella-form')).not.toBeNull();
+});
+
+test('huella: preview del quiz sin reserva y con reveal', () => {
+  renderWithProviders(
+    <PaginaHostalView pagina={{ ...PAGINA_ACTIVA, plantilla: 'huella' }} beds={[]} preview slug="albergue-demo-galicia" />
+  );
+  expect(screen.getByTestId('pagina-hostal-preview')).toBeInTheDocument();
+  expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', 'huella');
+  expect(screen.queryByTestId('availability-check-button')).not.toBeInTheDocument();
+  expect(screen.getByTestId('pagina-hostal-hero').closest('[data-reveal]')).not.toBeNull();
+});
+
+test('huella: la pantalla de éxito también va dentro de la skin clara', () => {
+  renderWithProviders(
+    <Huella pagina={{ ...PAGINA_ACTIVA, plantilla: 'huella' }} beds={[]} success onSuccess={() => {}} slug="albergue-demo-galicia" />
+  );
+  const success = screen.getByTestId('public-booking-success-screen');
+  expect(success.closest('.huella-form')).not.toBeNull();
+  expect(screen.queryByTestId('availability-check-button')).not.toBeInTheDocument();
+});
+
+test('huella: footer con filete sutil y galería con el filtro del tema', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: 'huella', color_acento: 'ocre' }];
+  renderPagina('albergue-demo-galicia');
+
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
+  const footer = screen.getByTestId('huella-footer');
+  expect(footer.className).toContain('border-gray-200');
+  expect(screen.getByText(/sin comisiones/i)).toBeInTheDocument();
+  const img = screen.getByTestId('pagina-hostal-galeria').querySelector('img');
+  expect(img.className).toContain('huella-img');
 });

@@ -1,0 +1,83 @@
+/* Huella — tema premium claro minimal. Mucho aire, acento solo en
+   microdetalles, precios en pila mono. Los colores dinámicos llegan por
+   --huella-acento / --huella-acento-oscuro (inyectados en la raíz del
+   componente). Paleta única gray (nunca slate): fondo blanco, texto
+   gray-900, secundarios gray-500.
+   La skin .huella-form eleva la reserva compartida (Card/ReservaDirecta/
+   Input/Select/Button, sin tocarlos): flotación con sombra suave, focos
+   del acento, botones del acento. Solo afecta a lo que cuelgue del
+   contenedor con esa clase. */
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+[data-reveal="shown"] {
+  opacity: 1;
+  transform: none;
+}
+
+.huella-img {
+  filter: contrast(1.03) saturate(0.92);
+}
+[data-reveal] .huella-img {
+  transform: scale(1.03);
+  transition: transform 1.1s ease;
+}
+[data-reveal="shown"] .huella-img {
+  transform: scale(1);
+}
+
+.huella-precio {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Skin clara premium de la reserva compartida (solo dentro de .huella-form). */
+.huella-form [class~=bg-white] {
+  background-color: #ffffff !important;
+  border-color: #f3f4f6 !important;
+  box-shadow: 0 24px 48px -24px rgba(17, 24, 39, 0.18) !important;
+}
+.huella-form input:not([type="checkbox"]):not([type="radio"]),
+.huella-form select {
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #111827 !important;
+}
+.huella-form input:focus,
+.huella-form select:focus {
+  --tw-ring-color: var(--huella-acento) !important;
+  border-color: var(--huella-acento) !important;
+}
+.huella-form button[class~=bg-blue-600] {
+  background-color: var(--huella-acento) !important;
+}
+.huella-form button[class~=bg-blue-600]:hover {
+  background-color: var(--huella-acento-oscuro) !important;
+}
+.huella-form :is(input[type="checkbox"], input[type="radio"]) {
+  accent-color: var(--huella-acento);
+}
+.huella-form [class~=text-gray-400],
+.huella-form [class~=text-slate-400] {
+  color: #6b7280 !important;
+}
+
+@media (max-width: 767px) {
+  [data-reveal] { opacity: 1; transform: none; transition: none; }
+  [data-reveal] .huella-img { transform: none; transition: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] { opacity: 1; transform: none; transition: none; }
+  [data-reveal] .huella-img { transform: none; transition: none; }
+}
+@media (min-width: 768px) {
+  .huella-img-hover {
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+  }
+  .huella-img-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 36px -16px rgba(17, 24, 39, 0.25);
+  }
+}
