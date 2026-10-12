@@ -1,0 +1,86 @@
+/* Camino — tema premium editorial (evolución de piloto_b): foto a
+   sangre con overlay en gradiente, serif grande, acento como banda de
+   sección y ficha de precio flotante. Colores dinámicos por variables
+   (--camino-acento / --camino-acento-oscuro). Paleta única gray.
+   La skin .camino-form adapta la reserva compartida sin tocarla. */
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+[data-reveal="shown"] {
+  opacity: 1;
+  transform: none;
+}
+
+.camino-hero-img {
+  filter: contrast(1.04) saturate(0.9);
+}
+[data-reveal] .camino-hero-img {
+  transform: scale(1.06);
+  transition: transform 1.2s ease;
+}
+[data-reveal="shown"] .camino-hero-img {
+  transform: scale(1);
+}
+
+.camino-desc::first-letter {
+  float: left;
+  font-size: 2.6em;
+  line-height: 0.9;
+  padding-right: 0.12em;
+  color: #ffffff;
+}
+
+.camino-img {
+  filter: contrast(1.03) saturate(0.92);
+}
+
+/* Skin clara editorial de la reserva compartida (solo .camino-form). */
+.camino-form [class~=bg-white] {
+  background-color: #f9fafb !important;
+  border-color: #e5e7eb !important;
+}
+.camino-form input:not([type="checkbox"]):not([type="radio"]),
+.camino-form select {
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #111827 !important;
+}
+.camino-form input:focus,
+.camino-form select:focus {
+  --tw-ring-color: var(--camino-acento) !important;
+  border-color: var(--camino-acento) !important;
+}
+.camino-form button[class~=bg-blue-600] {
+  background-color: var(--camino-acento) !important;
+}
+.camino-form button[class~=bg-blue-600]:hover {
+  background-color: var(--camino-acento-oscuro) !important;
+}
+.camino-form :is(input[type="checkbox"], input[type="radio"]) {
+  accent-color: var(--camino-acento);
+}
+.camino-form [class~=text-slate-400],
+.camino-form [class~=text-gray-400] {
+  color: #6b7280 !important;
+}
+
+@media (max-width: 767px) {
+  [data-reveal] { opacity: 1; transform: none; transition: none; }
+  [data-reveal] .camino-hero-img { transform: none; transition: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] { opacity: 1; transform: none; transition: none; }
+  [data-reveal] .camino-hero-img { transform: none; transition: none; }
+}
+@media (min-width: 768px) {
+  .camino-img-hover {
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+  }
+  .camino-img-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 36px -16px rgba(17, 24, 39, 0.3);
+  }
+}

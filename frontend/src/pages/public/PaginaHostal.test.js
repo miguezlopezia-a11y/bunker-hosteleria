@@ -15,6 +15,7 @@ import PaginaHostal from './PaginaHostal';
 import PaginaHostalView from '../../components/public/PaginaHostalView';
 import Norte from '../../components/public/plantillas/Norte';
 import Huella from '../../components/public/plantillas/Huella';
+import Camino from '../../components/public/plantillas/Camino';
 
 // Controla lo que devuelve el mock de get_pagina_hostal (el prefijo mock* es
 // obligatorio para que Jest permita referenciarlo desde la factory).
@@ -316,4 +317,63 @@ test('huella: footer con filete sutil y galería con el filtro del tema', async 
   expect(screen.getByText(/sin comisiones/i)).toBeInTheDocument();
   const img = screen.getByTestId('pagina-hostal-galeria').querySelector('img');
   expect(img.className).toContain('huella-img');
+});
+
+test('camino: hero a sangre con gradiente, título serif blanco y ficha de precio flotante', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: 'camino', color_acento: 'ocre' }];
+  renderPagina('albergue-demo-galicia');
+
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
+  expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', 'camino');
+
+  const hero = screen.getByTestId('pagina-hostal-hero');
+  expect(hero).toContainElement(screen.getByTestId('pagina-hostal-title'));
+  const title = screen.getByTestId('pagina-hostal-title');
+  expect(title).toHaveClass('font-serif', 'text-white');
+
+  // Ficha de precio flotante: card clara que se monta sobre el borde del hero.
+  const card = screen.getByTestId('camino-price-card');
+  expect(card).toHaveClass('bg-white', 'rounded-2xl');
+  expect(card.className).toContain('-mt-');
+
+  await waitFor(() => expect(screen.getByTestId('availability-check-button')).toBeInTheDocument());
+});
+
+test('camino: la descripción va en banda del color de acento con texto blanco', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: 'camino', color_acento: 'ocre' }];
+  renderPagina('albergue-demo-galicia');
+
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
+  const descripcion = screen.getByTestId('pagina-hostal-descripcion');
+  expect(descripcion.parentElement).toHaveStyle({ backgroundColor: '#b45309' });
+  expect(descripcion).toHaveClass('text-white');
+});
+
+test('camino: skin clara .camino-form con variables CSS del acento', async () => {
+  mockPaginaHostalRows = [{ ...PAGINA_ACTIVA, plantilla: 'camino', color_acento: 'ocre' }];
+  renderPagina('albergue-demo-galicia');
+
+  await waitFor(() => expect(screen.getByTestId('pagina-hostal-page')).toBeInTheDocument());
+  expect(screen.getByTestId('availability-check-button').closest('.camino-form')).not.toBeNull();
+  expect(screen.getByTestId('pagina-hostal-layout').getAttribute('style')).toContain('--camino-acento: #b45309');
+});
+
+test('camino: preview del quiz sin reserva y con reveal', () => {
+  renderWithProviders(
+    <PaginaHostalView pagina={{ ...PAGINA_ACTIVA, plantilla: 'camino' }} beds={[]} preview slug="albergue-demo-galicia" />
+  );
+  expect(screen.getByTestId('pagina-hostal-preview')).toBeInTheDocument();
+  expect(screen.getByTestId('pagina-hostal-layout')).toHaveAttribute('data-plantilla', 'camino');
+  expect(screen.queryByTestId('availability-check-button')).not.toBeInTheDocument();
+  expect(screen.getByTestId('camino-price-card').closest('[data-reveal]')).not.toBeNull();
+});
+
+test('camino: éxito dentro de la skin, footer con filete de acento y galería filtrada', () => {
+  renderWithProviders(
+    <Camino pagina={{ ...PAGINA_ACTIVA, plantilla: 'camino', color_acento: 'ocre' }} beds={[]} success onSuccess={() => {}} slug="albergue-demo-galicia" />
+  );
+  expect(screen.getByTestId('public-booking-success-screen').closest('.camino-form')).not.toBeNull();
+  expect(screen.getByTestId('camino-footer')).toHaveStyle({ borderTopColor: '#b45309' });
+  const img = screen.getByTestId('pagina-hostal-galeria').querySelector('img');
+  expect(img.className).toContain('camino-img');
 });
