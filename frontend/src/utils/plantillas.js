@@ -2,6 +2,7 @@ import HeroGrande from '../components/public/plantillas/HeroGrande';
 import HeroDividido from '../components/public/plantillas/HeroDividido';
 import Norte from '../components/public/plantillas/Norte';
 import Huella from '../components/public/plantillas/Huella';
+import Camino from '../components/public/plantillas/Camino';
 
 export const PLANTILLAS = {
   DEFAULT: 'piloto_a',
@@ -10,6 +11,7 @@ export const PLANTILLAS = {
     { value: 'piloto_b', label: 'Hero dividido (foto + texto en paralelo)' },
     { value: 'norte', label: 'Norte (oscuro duotone, premium)' },
     { value: 'huella', label: 'Huella (claro minimal, premium)' },
+    { value: 'camino', label: 'Camino (editorial, banda de acento)' },
   ],
 };
 
@@ -19,6 +21,7 @@ export const LAYOUTS = {
   piloto_b: HeroDividido,
   norte: Norte,
   huella: Huella,
+  camino: Camino,
 };
 
 export function layoutFor(plantilla) {
