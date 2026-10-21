@@ -40,7 +40,9 @@ export default function Select({
           </option>
         )}
         {groups
-          ? groups.map((group) => (
+          ? groups
+              .filter((group) => group.options.length > 0)
+              .map((group) => (
               <optgroup key={group.label} label={group.label}>
                 {group.options.map((opt) => (
                   <option key={opt.value} value={opt.value}>

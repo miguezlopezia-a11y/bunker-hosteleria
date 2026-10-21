@@ -39,8 +39,8 @@ function NewReservationModal({ isOpen, onClose }) {
   });
   const [errors, setErrors] = useState({});
 
-  // El selector mezcla camas (value "bed:<label>") y habitaciones privadas
-  // (value "room:<uuid>"); addReservation distingue el flujo por roomDbId.
+  // El selector separa camas (value "bed:<label>") y habitaciones privadas
+  // (value "room:<uuid>") en dos optgroup; addReservation distingue el flujo por roomDbId.
   const privateRooms = rooms.filter((r) => r.tipo === 'privada');
   const unitGroups = [
     { label: 'Camas', options: beds.map((b) => ({ value: `bed:${b.id}`, label: `Cama ${b.id}` })) },
