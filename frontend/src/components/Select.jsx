@@ -13,6 +13,7 @@ export default function Select({
   id,
   error,
   options = [],
+  groups,
   placeholder,
   className = '',
   required = false,
@@ -38,11 +39,23 @@ export default function Select({
             {placeholder}
           </option>
         )}
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
+        {groups
+          ? groups
+              .filter((group) => group.options.length > 0)
+              .map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.options.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </optgroup>
+            ))
+          : options.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
       </select>
       {error && (
         <p className="text-red-600 text-xs mt-1" data-testid={`${selectId}-error`}>

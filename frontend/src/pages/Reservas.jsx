@@ -39,12 +39,12 @@ function NewReservationModal({ isOpen, onClose }) {
   });
   const [errors, setErrors] = useState({});
 
-  // El selector mezcla camas (value "bed:<label>") y habitaciones privadas
-  // (value "room:<uuid>"); addReservation distingue el flujo por roomDbId.
+  // El selector separa camas (value "bed:<label>") y habitaciones privadas
+  // (value "room:<uuid>") en dos optgroup; addReservation distingue el flujo por roomDbId.
   const privateRooms = rooms.filter((r) => r.tipo === 'privada');
-  const unitOptions = [
-    ...beds.map((b) => ({ value: `bed:${b.id}`, label: `Cama ${b.id}` })),
-    ...privateRooms.map((r) => ({ value: `room:${r._dbId}`, label: `Habitación ${r.name} (privada)` })),
+  const unitGroups = [
+    { label: 'Camas', options: beds.map((b) => ({ value: `bed:${b.id}`, label: `Cama ${b.id}` })) },
+    { label: 'Habitaciones privadas', options: privateRooms.map((r) => ({ value: `room:${r._dbId}`, label: `Habitación ${r.name} (privada)` })) },
   ];
 
   const handleChange = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -143,7 +143,7 @@ function NewReservationModal({ isOpen, onClose }) {
           required
           value={form.bed}
           onChange={handleChange('bed')}
-          options={unitOptions}
+          groups={unitGroups}
           placeholder="Selecciona una cama o habitación"
           error={errors.bed}
           data-testid="new-reservation-bed-select"
